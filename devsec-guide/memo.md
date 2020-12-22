@@ -28,7 +28,7 @@ CA証明書の作成
 vagrant@:pem$ cat ca.json
 {
     "CN": "my-ca.example.com",
-    "Key": {
+    "key": {
         "algo": "ecdsa",
         "size": 256
     },
@@ -169,5 +169,85 @@ client.csr
 client.json
 client.pem
 ```
+
+mkcertで証明書を作成
+
+mkcertインストール
+
+```
+vagrant@:~$ wget https://github.com/FiloSottile/mkcert/releases/download/v1.4.3/mkcert-v1.4.3-linux-amd64
+vagrant@:~$ mv mkcert-v1.4.3-linux-amd64 mkcert
+vagrant@:~$ chmod +x mkcert
+vagrant@:~$ sudo mv mkcert /usr/local/bin
+```
+
+証明書作成
+
+```
+vagrant@:mkcert$ CAROOT=. mkcert my-server.example.com
+Created a new local CA 💥
+Note: the local CA is not installed in the system trust store.
+Run "mkcert -install" for certificates to be trusted automatically ⚠️
+
+Created a new certificate valid for the following names 📜
+ - "my-server.example.com"
+
+The certificate is at "./my-server.example.com.pem" and the key at "./my-server.example.com-key.pem" ✅
+
+It will expire on 22 March 2023 🗓
+
+vagrant@:mkcert$ CAROOT=. mkcert -client client
+Note: the local CA is not installed in the system trust store.
+Run "mkcert -install" for certificates to be trusted automatically ⚠️
+
+Created a new certificate valid for the following names 📜
+ - "client"
+
+The certificate is at "./client-client.pem" and the key at "./client-client-key.pem" ✅
+
+It will expire on 22 March 2023 🗓
+
+vagrant@:mkcert$ ls
+client-client-key.pem  my-server.example.com-key.pem  rootCA-key.pem
+client-client.pem      my-server.example.com.pem      rootCA.pem
+```
+
+mkcertで作成したのをk8sにデプロイして確認
+
+```
+vagrant@:mkcert$ k create configmap ca --from-file=rootCA.pem
+configmap/ca created
+vagrant@:mkcert$ kubectl create secret tls nginx-tls --cert=my-server.example.com.pem --key=my-server.example.com-key.pe
+m
+secret/nginx-tls created
+vagrant@:mkcert$ cd ../
+vagrant@:yaml$ kubectl create configmap nginx --from-file=nginx.conf
+configmap/nginx created
+vagrant@:yaml$ kubectl apply -f nginx.yaml
+pod/nginx created
+vagrant@:yaml$ kubectl port-forward pod/nginx 8443:443 &
+[1] 135646
+vagrant@:yaml$ kubectl get pod
+NAME    READY   STATUS    RESTARTS   AGE
+nginx   1/1     Running   0          45
+```
+
+curlで確認
+
+```
+vagrant@:mkcert$ curl --head --cacert ./rootCA.pem --cert ./client-client.pem --key ./client-client-key.pem https://my-s
+erver.example.com:8443/
+Handling connection for 8443
+HTTP/1.1 200 OK
+Server: nginx/1.16.1
+Date: Tue, 22 Dec 2020 03:24:04 GMT
+Content-Type: text/html
+Content-Length: 612
+Last-Modified: Tue, 13 Aug 2019 10:05:00 GMT
+Connection: keep-alive
+ETag: "5d528b4c-264"
+Accept-Ranges: bytes
+```
+
 
 
