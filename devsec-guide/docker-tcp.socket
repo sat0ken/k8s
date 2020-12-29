@@ -1,0 +1,9 @@
+[Unit]
+Description=Docker (TCP)
+
+[Socket]
+ListenStream=2376
+Service=docker.service
+
+[Install]
+WantedBy=sockets.target
