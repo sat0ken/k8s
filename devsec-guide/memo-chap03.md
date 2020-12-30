@@ -199,3 +199,71 @@ Share images, automate workflows, and more with a free Docker ID:
 For more examples and ideas, visit:
  https://docs.docker.com/get-started/
 ```
+
+Docker in Docker コンテナに他のコンテナから接続する
+
+```
+[root@centos8 ~]# docker network create dindnet
+efd7386505f1ba3e3533d912e29b28ef316ce4e6a8f830bb4aef86e69e99a139
+[root@centos8 ~]# docker run -d --privileged --name dind --hostname dind --network dindnet docker:19.03.3-dind
+c46f337d3121bb8d4ac77598e2a3047fd6640172dadc71f4cfb3344702179276
+[root@centos8 ~]# mkdir dind
+[root@centos8 ~]# cd dind/
+[root@centos8 dind]# docker cp dind:/certs/client .
+[root@centos8 dind]# ls client/
+ca.pem  cert.pem  csr.pem  key.pem  openssl.cnf
+[root@centos8 dind]# docker run --rm --network dindnet -v $(pwd)/client:/certs/client:ro -e DOCKER_HOST=tcp://dind:2376 docker:19.03.3 docker run --rm hello-world
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+
+[root@centos8 dind]#
+```
+
+コンテナ実行ユーザを変更する
+
+UID:GIDを指定してコンテナを実行する
+
+```
+[root@centos8 ~]# docker run -it --user 1000:1000 alpine ash
+/ $ id
+uid=1000 gid=1000
+```
+
+Dockerfileでユーザを指定する
+
+```
+[root@centos8 alpine]# cat Dockerfile 
+FROM alpine:latest
+RUN adduser -D exampleuser
+USER exampleuser
+[root@centos8 alpine]# docker build -q -t foo . && docker run -it --rm foo
+sha256:6c558fd88cc553cafaebe83d37e3fe764007698cf1c4a659c300fd835b387ec6
+/ $ id
+uid=1000(exampleuser) gid=1000(exampleuser)
+/ $ env
+HOSTNAME=e8941102c656
+SHLVL=1
+HOME=/home/exampleuser
+TERM=xterm
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PWD=/
+```
