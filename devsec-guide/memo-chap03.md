@@ -618,8 +618,8 @@ touch: setting times of '/host/foo': Permission denied
 
 ファイルのタイプやカテゴリ番号を確認する
 
-小文字のzオプションでbind-mountを書き込み可能にする
-小文字のzオプションはディレクトリおよびその内部のファイルのタイプを一時的にcontainer_file_tタイプに変更する
+小文字のzオプションでbind-mountを書き込み可能にする  
+小文字のzオプションはディレクトリおよびその内部のファイルのタイプを一時的にcontainer_file_tタイプに変更する  
 ファイルのカテゴリは指定しないので複数のコンテナから読み書き可能
 
 ```
@@ -631,9 +631,9 @@ ab1c1ff529c5bb880dd178b115f164c6691f34ec81d3014de2b9e3ce1c99a5e4
 [root@centos8 ~]# docker exec container1 cat /foo/file
 written by container0
 ```
-
-大文字のZオプションでbind-mountを書き込み可能にする
-大文字のZオプションはディレクトリおよびその内部のファイルのタイプを変更するだけでなく、カテゴリもコンテナに合わせて変更する
+ 
+大文字のZオプションでbind-mountを書き込み可能にする  
+大文字のZオプションはディレクトリおよびその内部のファイルのタイプを変更するだけでなく、カテゴリもコンテナに合わせて変更する  
 そのため最後に起動したコンテナのみが読み書きできる
 
 ```
@@ -646,4 +646,39 @@ sh: /foo/file: Permission denied
 [root@centos8 ~]# docker exec container1 sh -c "echo written by container0 > /foo/file"
 [root@centos8 ~]# docker exec container1 cat /foo/file
 written by container0
+```
+
+プロセスのドメインを定義する  
+SELinuxポリシー生成ツール udica を使ってドメインを定義する
+
+install
+
+```
+[root@centos8 ~]# python3 -m pip install udica
+```
+
+コンテナの構成情報を取得する  
+SELinuxポリシーを作成する
+
+```
+[root@centos8 ~]# docker run -d  --name foo -v /home/user01/foo:/foo docker.io/library/centos:8 sleep 3600
+5543af6dc1b5884df53d90f7d24a97ef8ca9be9fe0bbe15fa3757d42f9655283
+[root@centos8 ~]# docker inspect foo >> foo.json
+[root@centos8 ~]# udica foo < foo.json
+
+Policy foo created!
+
+Please load these modules using:
+# semodule -i foo.cil /usr/share/udica/templates/base_container.cil
+
+Restart the container with: "--security-opt label=type:foo.process" parameter
+```
+
+SELinuxポリシーを指定してコンテナを起動する
+
+```
+[root@centos8 ~]# semodule -i foo.cil /usr/share/udica/templates/base_container.cil
+[root@centos8 ~]# docker run -it --rm -v /home/user01/foo:/foo --security-opt label=type:foo.process docker.io/library/centos:8
+[root@35bbb42e063c /]# cat /proc/1/attr/current
+system_u:system_r:foo.process:s0:c870,c1002
 ```
