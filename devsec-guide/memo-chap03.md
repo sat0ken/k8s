@@ -1,6 +1,6 @@
 ### 第3章 ランタイムのセキュリティTips
 
-#### Docker APIエンドポイントを保護する
+#### 3.1 Docker APIエンドポイントを保護する
 
 TLSクライアント認証による保護
 
@@ -238,7 +238,7 @@ For more examples and ideas, visit:
 [root@centos8 dind]#
 ```
 
-コンテナ実行ユーザを変更する
+#### 3.2 コンテナ実行ユーザを変更する
 
 UID:GIDを指定してコンテナを実行する
 
@@ -332,6 +332,8 @@ cat: can't open '/host/etc/shadow': Permission denied
 ランタイム自体を非rootで動かす
 Rootless版のDockerをインストールする
 
+https://docs.docker.com/engine/security/rootless/
+
 ```
 [root@centos8 ~]# su - user01
 Last login: Mon Jan  4 14:53:46 JST 2021 on pts/0
@@ -387,4 +389,43 @@ time="2021-01-04T15:04:30.554337887+09:00" level=info msg="starting signal loop"
 Hello from Docker!
 This message shows that your installation appears to be working correctly.
 ```
+
+#### 3.3 ケーパビリティやシステムコールを制限する
+
+特定のケーパビリティを削除 = `--cap-drop`
+必要なケーパビリティを追加 = `--cap-add` 
+
+必要なケーパビリティのみ明示的に追加する
+
+```
+[root@centos8 ~]# docker run -d -p 80:80 --cap-drop all --cap-add chown --cap-add setuid --cap-add setgid --cap-add net_bind_service nginx:1.17.3-alpine
+Unable to find image 'nginx:1.17.3-alpine' locally
+1.17.3-alpine: Pulling from library/nginx
+9d48c3bd43c5: Pull complete
+b6dac14ba0a9: Pull complete
+Digest: sha256:99be6ae8d32943b676031b3513782ad55c8540c1d040b1f7b8c335c67a241b06
+Status: Downloaded newer image for nginx:1.17.3-alpine
+d263e46a90fb790acab02b0194b4e579e5f51dfc126af0788706273884156715
+[root@centos8 ~]# curl -s localhost:80 | grep Welcome
+<title>Welcome to nginx!</title>
+```
+
+CAP_NET_RAWがないとpingができない
+
+```
+[root@centos8 ~]# docker run --rm --cap-drop all alpine ping 8.8.8.8
+PING 8.8.8.8 (8.8.8.8): 56 data bytes
+ping: permission denied (are you root?)
+```
+
+GID 0~1000 にCAP_NET_RAW無しでのpingを許可する
+
+```
+[root@centos8 ~]# docker run --rm --cap-drop all --sysctl "net.ipv4.ping_group_range=0 1000" alpine ping 8.8.8.8
+PING 8.8.8.8 (8.8.8.8): 56 data bytes
+64 bytes from 8.8.8.8: seq=0 ttl=42 time=11.480 ms
+64 bytes from 8.8.8.8: seq=1 ttl=42 time=10.045 ms
+```
+
+不要なシステムコールの呼び出しを禁止する
 
