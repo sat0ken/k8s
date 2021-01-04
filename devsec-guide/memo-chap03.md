@@ -267,3 +267,67 @@ TERM=xterm
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 PWD=/
 ```
+
+非rootユーザをrootに見せかける
+
+User Namespaceを有効にする
+userns-remapにdefaultを指定すると、Dockerは自動的にホストに`dockremap`ユーザを作成してホストの/etc/subuidと/etc/subgidに設定を作成する
+
+```
+[root@centos8 ~]# cat /etc/docker/daemon.json | grep userns
+        "userns-remap": "default"
+[root@centos8 ~]# systemctl restart docker
+[root@centos8 ~]# cat /etc/subuid | grep dock
+dockremap:165536:65536
+[root@centos8 ~]# cat /etc/subgid | grep dock
+dockremap:165536:65536
+[root@centos8 ~]#
+```
+
+↑ではコンテナ内のuid=0(root)にホストのuid=165536がマッピングされる。
+
+```
+[root@centos8 ~]# docker run -it --rm alpine ash
+/ #
+/ # id
+uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)
+
+ホストでpsコマンドを実行
+[root@centos8 ~]# ps -aux | grep -e 165536 -e USER| grep -v grep
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+165536   3066359  0.0  0.1   1648  1064 pts/0    Ss+  12:40   0:00 ash
+```
+
+ホストのファイルシステムをbind-mountしても`Permission denied`になる
+
+```
+[root@centos8 ~]# docker run -it --rm alpine ash
+/ #
+/ # id
+uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)
+/ # ps -ef
+PID   USER     TIME  COMMAND
+    1 root      0:00 ash
+    7 root      0:00 ps -ef
+/ # exit
+[root@centos8 ~]# docker run -it --rm -v /:/host --user 65534:65534 alpine ash
+~ $ id
+uid=65534(nobody) gid=65534(nobody)
+~ $ ls -ln /host/etc/shadow
+----------    1 65534    65534          857 Jan  4 03:30 /host/etc/shadow
+~ $ cat /host/etc/shadow
+cat: can't open '/host/etc/shadow': Permission denied
+```
+
+見せかけのrootでも同じく
+
+```
+[root@centos8 ~]# docker run -it --rm -v /:/host alpine ash
+/ # id
+uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)
+/ # cat /host/etc/shadow
+cat: can't open '/host/etc/shadow': Permission denied
+```
+
+ランタイム自体を非rootで動かす
+
