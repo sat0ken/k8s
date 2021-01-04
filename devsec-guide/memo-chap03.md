@@ -330,4 +330,61 @@ cat: can't open '/host/etc/shadow': Permission denied
 ```
 
 ランタイム自体を非rootで動かす
+Rootless版のDockerをインストールする
+
+```
+[root@centos8 ~]# su - user01
+Last login: Mon Jan  4 14:53:46 JST 2021 on pts/0
+[user01@centos8 ~]$ id -u
+1001
+[user01@centos8 ~]$ grep ^$(whoami): /etc/subuid
+user01:231072:65536
+[user01@centos8 ~]$ grep ^$(whoami): /etc/subgid
+user01:231072:65536
+[user01@centos8 ~]$ curl -fsSL https://get.docker.com/rootless | sh
+# Installing stable version 20.10.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 65.7M  100 65.7M    0     0  4398k      0  0:00:15  0:00:15 --:--:-- 5034k
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 19.0M  100 19.0M    0     0  4597k      0  0:00:04  0:00:04 --:--:-- 4597k
++ PATH=/home/user01/bin:/home/user01/.local/bin:/home/user01/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
++ /home/user01/bin/dockerd-rootless-setuptool.sh install
+[INFO] systemd not detected, dockerd-rootless.sh needs to be started manually:
+
+PATH=/home/user01/bin:/sbin:/usr/sbin:$PATH dockerd-rootless.sh
+
+[INFO] Make sure the following environment variables are set (or add them to ~/.bashrc):
+
+# WARNING: systemd not found. You have to remove XDG_RUNTIME_DIR manually on every logout.
+export XDG_RUNTIME_DIR=/home/user01/.docker/run
+export PATH=/home/user01/bin:$PATH
+export DOCKER_HOST=unix:///home/user01/.docker/run/docker.sock
+```
+
+dockerdが非rootユーザ権限で動作していることを確認する
+
+```
+[user01@centos8 ~]$ ./bin/dockerd-rootless.sh &
+[user01@centos8 ~]$ ps xf -o user,pid,comm
+USER         PID COMMAND
+user01   3067200 bash
+user01   3067479  \_ rootlesskit
+user01   3067487  |   \_ exe
+user01   3067515  |   |   \_ dockerd
+user01   3067531  |   |       \_ containerd
+user01   3067497  |   \_ vpnkit
+user01   3067691  \_ ps
+[user01@centos8 ~]$ docker run  --rm hello-world
+Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+0e03bdcc26d7: Pull complete
+Digest: sha256:1a523af650137b8accdaed439c17d684df61ee4d74feac151b5b337bd29e7eec
+Status: Downloaded newer image for hello-world:latest
+time="2021-01-04T15:04:30.554337887+09:00" level=info msg="starting signal loop" namespace=moby path=/home/user01/.docker/run/docker/containerd/daemon/io.containerd.runtime.v2.task/moby/6d5ceaf866571f147052d08b590de37d9fefb72529c28343acded64d2f91ba52 pid=3067731
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+```
 
