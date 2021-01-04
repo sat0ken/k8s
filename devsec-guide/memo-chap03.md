@@ -498,3 +498,124 @@ Dockerfile  Dockerfile.fat  creport.json  files.tar  nginx-apparmor-profile  ngi
 <title>Welcome to nginx!</title>
 <h1>Welcome to nginx!</h1>
 ```
+
+#### 3.4 ファイルアクセスを制限する
+ファイルシステムをReadOnlyにする
+
+コンテナのrootファイルシステムをReadOnlyにする
+
+```
+[root@centos8 ~]# docker run --rm --read-only alpine touch /test
+touch: /test: Read-only file system
+```
+
+/tmpに書き込み可能なtmpfs(128MB)をマウントする
+
+```
+[root@centos8 ~]# docker run --rm -it --tmpfs /tmp:size=128M alpine ash
+/ # df -h | grep /tmp
+tmpfs                   128.0M         0    128.0M   0% /tmp
+```
+
+ボリュームやbind-mountをReadOnlyにする
+
+```
+[root@centos8 ~]# docker volume create foo
+foo
+[root@centos8 ~]# docker volume ls
+DRIVER    VOLUME NAME
+local     docker-slim-sensor.1.33.0
+local     foo
+[root@centos8 ~]# docker run --rm -it -v foo:/foo:ro alpine ash
+/ # df -h | grep foo
+                         12.2G      3.5G      8.7G  29% /foo
+/ # mount | grep foo
+/dev/mapper/cl_k8s--worker1-root on /foo type xfs (ro,seclabel,relatime,attr2,inode64,noquota)
+```
+
+ファイルアクセスを細かく制御する(SELinux)
+
+```
+[root@centos8 ~]# getenforce
+Enforcing
+[root@centos8 ~]# cat /etc/docker/daemon.json | grep selinux
+        "selinux-enabled": true
+```
+
+コンテナのSELinuxセキュリティコンテキストを確認する
+
+```
+[root@centos8 ~]# docker run --rm docker.io/library/centos:8 cat /proc/1/attr/current
+system_u:system_r:container_t:s0:c746,c803
+```
+
+SELinuxセキュリティコンテキストには以下の属性が含まれている
+
+- system_u(SELinuxユーザ)
+- system_r(ロール)
+- container_t(ドメイン)
+- s0(センシティビティ)
+- c746,c803(カテゴリ)
+
+ファイルのセキュリティコンテキストを確認する
+
+```
+[root@centos8 ~]# docker run -it --rm -v /:/host docker.io/library/centos:8 bash
+[root@d0840036e3cd /]#
+[root@d0840036e3cd /]# cat /proc/1/attr/current
+system_u:system_r:container_t:s0:c481,c903
+
+```
+[root@d0840036e3cd /]# ls -1 -Zl /
+total 0
+lrwxrwxrwx.   1 root root system_u:object_r:container_file_t:s0:c481,c903   7 Nov  3 15:22 bin -> usr/bin
+drwxr-xr-x.   5 root root system_u:object_r:container_file_t:s0:c481,c903 360 Jan  4 08:34 dev
+drwxr-xr-x.   1 root root system_u:object_r:container_file_t:s0:c481,c903  66 Jan  4 08:34 etc
+drwxr-xr-x.   2 root root system_u:object_r:container_file_t:s0:c481,c903   6 Nov  3 15:22 home
+dr-xr-xr-x.  18 root root system_u:object_r:root_t:s0                     259 Jan  4 08:16 host
+lrwxrwxrwx.   1 root root system_u:object_r:container_file_t:s0:c481,c903   7 Nov  3 15:22 lib -> usr/lib
+lrwxrwxrwx.   1 root root system_u:object_r:container_file_t:s0:c481,c903   9 Nov  3 15:22 lib64 -> usr/lib64
+drwx------.   2 root root system_u:object_r:container_file_t:s0:c481,c903   6 Dec  4 17:37 lost+found
+drwxr-xr-x.   2 root root system_u:object_r:container_file_t:s0:c481,c903   6 Nov  3 15:22 media
+drwxr-xr-x.   2 root root system_u:object_r:container_file_t:s0:c481,c903   6 Nov  3 15:22 mnt
+drwxr-xr-x.   2 root root system_u:object_r:container_file_t:s0:c481,c903   6 Nov  3 15:22 opt
+dr-xr-xr-x. 155 root root system_u:object_r:proc_t:s0                       0 Jan  4 08:34 proc
+dr-xr-x---.   2 root root system_u:object_r:container_file_t:s0:c481,c903 162 Dec  4 17:37 root
+drwxr-xr-x.  11 root root system_u:object_r:container_file_t:s0:c481,c903 163 Dec  4 17:37 run
+lrwxrwxrwx.   1 root root system_u:object_r:container_file_t:s0:c481,c903   8 Nov  3 15:22 sbin -> usr/sbin
+drwxr-xr-x.   2 root root system_u:object_r:container_file_t:s0:c481,c903   6 Nov  3 15:22 srv
+dr-xr-xr-x.  13 root root system_u:object_r:sysfs_t:s0                      0 Aug 19 02:59 sys
+drwxrwxrwt.   7 root root system_u:object_r:container_file_t:s0:c481,c903 145 Dec  4 17:37 tmp
+drwxr-xr-x.  12 root root system_u:object_r:container_file_t:s0:c481,c903 144 Dec  4 17:37 usr
+drwxr-xr-x.  20 root root system_u:object_r:container_file_t:s0:c481,c903 262 Dec  4 17:37 var
+[root@d0840036e3cd /]# ls -1 -Zl /host
+ls: cannot access '/host/debug_output.txt': Permission denied
+total 20
+lrwxrwxrwx.   1 root root system_u:object_r:bin_t:s0            7 May 11  2019 bin -> usr/bin
+dr-xr-xr-x.   6 root root system_u:object_r:boot_t:s0        4096 Aug  4 09:04 boot
+-??????????   ? ?    ?                                     0    ?            ? debug_output.txt
+drwxr-xr-x.  19 root root system_u:object_r:device_t:s0      3060 Aug 19 02:59 dev
+drwxr-xr-x.  86 root root system_u:object_r:etc_t:s0         8192 Jan  4 06:21 etc
+drwxr-xr-x.   3 root root unconfined_u:object_r:default_t:s0   17 Jan  4 08:16 foo
+drwxr-xr-x.   4 root root system_u:object_r:home_root_t:s0     34 Jan  4 05:53 home
+lrwxrwxrwx.   1 root root system_u:object_r:lib_t:s0            7 May 11  2019 lib -> usr/lib
+lrwxrwxrwx.   1 root root system_u:object_r:lib_t:s0            9 May 11  2019 lib64 -> usr/lib64
+drwxr-xr-x.   2 root root system_u:object_r:mnt_t:s0            6 May 11  2019 media
+drwxr-xr-x.   4 root root system_u:object_r:mnt_t:s0           31 Aug 19 08:45 mnt
+drwxr-xr-x.   4 root root system_u:object_r:usr_t:s0           35 Aug  5 08:08 opt
+dr-xr-xr-x. 155 root root system_u:object_r:proc_t:s0           0 Aug 19 02:59 proc
+dr-xr-x---.  10 root root system_u:object_r:admin_home_t:s0  4096 Jan  4 08:21 root
+drwxr-xr-x.  28 root root system_u:object_r:var_run_t:s0      860 Jan  4 08:24 run
+lrwxrwxrwx.   1 root root system_u:object_r:bin_t:s0            8 May 11  2019 sbin -> usr/sbin
+drwxr-xr-x.   2 root root system_u:object_r:var_t:s0            6 May 11  2019 srv
+dr-xr-xr-x.  13 root root system_u:object_r:sysfs_t:s0          0 Aug 19 02:59 sys
+drwxrwxrwt.   5 root root system_u:object_r:tmp_t:s0          138 Jan  4 08:34 tmp
+drwxr-xr-x.  12 root root system_u:object_r:usr_t:s0          144 Aug  4 09:03 usr
+drwxr-xr-x.  20 root root system_u:object_r:var_t:s0          278 Aug  4 09:06 var
+[root@d0840036e3cd /]# cat /host/etc/shadow
+cat: /host/etc/shadow: Permission denied
+[root@d0840036e3cd /]# touch /host/foo
+touch: setting times of '/host/foo': Permission denied
+```
+
+
