@@ -427,5 +427,74 @@ PING 8.8.8.8 (8.8.8.8): 56 data bytes
 64 bytes from 8.8.8.8: seq=1 ttl=42 time=10.045 ms
 ```
 
-不要なシステムコールの呼び出しを禁止する
+不要なシステムコールの呼び出しを禁止する(seccomp)
 
+DockerSlimでプロファイルを自動生成する
+
+https://github.com/docker-slim/docker-slim
+
+DockerSlimはptraceでシステムコールをフックしながらコンテナを実行してプロファイリングを行い、そのコンテナが必要とするファイルやシステムコールを抽出する。
+本来の利用目的はimageサイズを小さくするためだが、副次的な効果としてseccompのプロファイルも作成できる。
+
+docker-slim buildコマンドを実行する
+
+```
+[root@centos8 ~]# docker-slim build nginx:1.17.3-alpine
+docker-slim: message='join the Gitter channel to ask questions or to share your feedback' info='https://gitter.im/docker-slim/community'
+docker-slim: message='join the Discord server to ask questions or to share your feedback' info='https://discord.gg/9tDyxYS'
+docker-slim[build]: info=http.probe message='using default probe'
+docker-slim[build]: state=started
+docker-slim[build]: info=params target=nginx:1.17.3-alpine continue.mode=probe rt.as.user=true keep.perms=true
+docker-slim[build]: state=image.inspection.start
+docker-slim[build]: info=image id=sha256:d87c83ec7a667bef183c7c501dd724783222da1a636be9b6d749f878c284281a size.bytes=21230073 size.human=21 MB
+docker-slim[build]: info=image.stack index=0 name='nginx:1.17.3-alpine' id='sha256:d87c83ec7a667bef183c7c501dd724783222da1a636be9b6d749f878c284281a'
+docker-slim[build]: info=image.exposed_ports list='80'
+docker-slim[build]: state=image.inspection.done
+docker-slim[build]: state=container.inspection.start
+docker-slim[build]: info=container status=created name=dockerslimk_3071132_20210104065513 id=4bab9ce04dade42089004a37b838f9605408068a513d939443e99626aac1b94a
+docker-slim[build]: info=cmd.startmonitor status=sent
+docker-slim[build]: info=event.startmonitor.done status=received
+docker-slim[build]: info=container name=dockerslimk_3071132_20210104065513 id=4bab9ce04dade42089004a37b838f9605408068a513d939443e99626aac1b94a target.port.list=[32770] target.port.info=[80/tcp => 0.0.0.0:32770] message='YOU CAN USE THESE PORTS TO INTERACT WITH THE CONTAINER'
+docker-slim[build]: state=http.probe.starting message='WAIT FOR HTTP PROBE TO FINISH'
+docker-slim[build]: info=continue.after mode=probe message='no input required, execution will resume when HTTP probing is completed'
+docker-slim[build]: info=prompt message='waiting for the HTTP probe to finish'
+docker-slim[build]: state=http.probe.running
+docker-slim[build]: info=http.probe.ports count=1 targets='32770'
+docker-slim[build]: info=http.probe.commands count=1 commands='GET /'
+docker-slim[build]: info=http.probe.call status=200 method=GET target=http://127.0.0.1:32770/ attempt=1  time=2021-01-04T06:55:25Z
+docker-slim[build]: info=http.probe.summary total=1 failures=0 successful=1
+docker-slim[build]: state=http.probe.done
+docker-slim[build]: info=probe.crawler page=0 url=http://127.0.0.1:32770/
+docker-slim[build]: info=probe.crawler.done addr=http://127.0.0.1:32770/
+docker-slim[build]: info=event message='HTTP probe is done'
+docker-slim[build]: state=container.inspection.finishing
+docker-slim[build]: state=container.inspection.artifact.processing
+docker-slim[build]: state=container.inspection.done
+docker-slim[build]: state=building message='building optimized image'
+docker-slim[build]: state=completed
+docker-slim[build]: info=results status='MINIFIED BY 3.98X [21230073 (21 MB) => 5338247 (5.3 MB)]'
+docker-slim[build]: info=results  image.name=nginx.slim image.size='5.3 MB' data=true
+docker-slim[build]: info=results  artifacts.location='/tmp/docker-slim-state/.docker-slim-state/images/d87c83ec7a667bef183c7c501dd724783222da1a636be9b6d749f878c284281a/artifacts'
+docker-slim[build]: info=results  artifacts.report=creport.json
+docker-slim[build]: info=results  artifacts.dockerfile.original=Dockerfile.fat
+docker-slim[build]: info=results  artifacts.dockerfile.new=Dockerfile
+docker-slim[build]: info=results  artifacts.seccomp=nginx-seccomp.json
+docker-slim[build]: info=results  artifacts.apparmor=nginx-apparmor-profile
+docker-slim[build]: state=done
+docker-slim[build]: info=commands message='use the xray command to learn more about the optimize image'
+docker-slim[build]: info=report file='slim.report.json'
+docker-slim: message='join the Gitter channel to ask questions or to share your feedback' info='https://gitter.im/docker-slim/community'
+docker-slim: message='join the Discord server to ask questions or to share your feedback' info='https://discord.gg/9tDyxYS'
+```
+
+生成されたファイルを利用してコンテナを起動する
+
+```
+[root@centos8 ~]# ls /tmp/docker-slim-state/.docker-slim-state/images/d87c83ec7a667bef183c7c501dd724783222da1a636be9b6d749f878c284281a/artifacts
+Dockerfile  Dockerfile.fat  creport.json  files.tar  nginx-apparmor-profile  nginx-seccomp.json
+[root@centos8 ~]# docker run -d --rm --name nginx -p 80:80 --security-opt seccomp=/tmp/docker-slim-state/.docker-slim-state/images/d87c83ec7a667bef183c7c501dd724783222da1a636be9b6d749f878c284281a/artifacts/nginx-seccomp.json nginx.slim
+597238643e8562d46e932bcdeaded012a3d0a0e1c8088adbe990c0d10aac2888
+[root@centos8 ~]# curl -s localhost:80 | grep Welcome
+<title>Welcome to nginx!</title>
+<h1>Welcome to nginx!</h1>
+```
