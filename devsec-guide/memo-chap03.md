@@ -564,8 +564,6 @@ SELinuxセキュリティコンテキストには以下の属性が含まれて�
 [root@d0840036e3cd /]#
 [root@d0840036e3cd /]# cat /proc/1/attr/current
 system_u:system_r:container_t:s0:c481,c903
-
-```
 [root@d0840036e3cd /]# ls -1 -Zl /
 total 0
 lrwxrwxrwx.   1 root root system_u:object_r:container_file_t:s0:c481,c903   7 Nov  3 15:22 bin -> usr/bin
@@ -618,4 +616,34 @@ cat: /host/etc/shadow: Permission denied
 touch: setting times of '/host/foo': Permission denied
 ```
 
+ファイルのタイプやカテゴリ番号を確認する
 
+小文字のzオプションでbind-mountを書き込み可能にする
+小文字のzオプションはディレクトリおよびその内部のファイルのタイプを一時的にcontainer_file_tタイプに変更する
+ファイルのカテゴリは指定しないので複数のコンテナから読み書き可能
+
+```
+[root@centos8 ~]# docker run -d --name container0 -v /foo:/foo:z docker.io/library/centos:8 sleep 3600
+5a67024176561561177b5dc51e659a32ccaaf5e6d38b38d4be10bbe7267331c2
+[root@centos8 ~]# docker run -d --name container1 -v /foo:/foo:z docker.io/library/centos:8 sleep 3600
+ab1c1ff529c5bb880dd178b115f164c6691f34ec81d3014de2b9e3ce1c99a5e4
+[root@centos8 ~]# docker exec container0 sh -c "echo written by container0 > /foo/file"
+[root@centos8 ~]# docker exec container1 cat /foo/file
+written by container0
+```
+
+大文字のZオプションでbind-mountを書き込み可能にする
+大文字のZオプションはディレクトリおよびその内部のファイルのタイプを変更するだけでなく、カテゴリもコンテナに合わせて変更する
+そのため最後に起動したコンテナのみが読み書きできる
+
+```
+[root@centos8 ~]# docker run -d --name container0 -v /foo:/foo:Z docker.io/library/centos:8 sleep 3600
+421ec71b8ee1d1107e41526386c2ba3a7eb0021271f1f7131b36be9a11d8b561
+[root@centos8 ~]# docker run -d --name container1 -v /foo:/foo:Z docker.io/library/centos:8 sleep 3600
+fc3ee975093b12ab8c97d956089b28bc96f7dc31fee06924339f338c78d918d8
+[root@centos8 ~]# docker exec container0 sh -c "echo written by container0 > /foo/file"
+sh: /foo/file: Permission denied
+[root@centos8 ~]# docker exec container1 sh -c "echo written by container0 > /foo/file"
+[root@centos8 ~]# docker exec container1 cat /foo/file
+written by container0
+```
