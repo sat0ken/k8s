@@ -682,3 +682,124 @@ SELinuxポリシーを指定してコンテナを起動する
 [root@35bbb42e063c /]# cat /proc/1/attr/current
 system_u:system_r:foo.process:s0:c870,c1002
 ```
+
+#### 3.4 リソースを制限する
+
+CPUコア使用量を制限する
+
+- --cpu-shareフラグ
+
+優先度の50%に下げてコンテナを実行する
+
+```
+# docker run -it --rm --cpu-shares 512 alpine ash
+```
+
+- --cpu-periodフラグと--cpu-quotaフラグ
+
+1秒(1,000,000マイクロ秒)あたりのCPU使用時間を0.5秒(5000,000マイクロ秒)に制限する → CPU1コアのマシンなら最大で50%割り当てることになる
+
+```
+# docker run -it --rm --cpu-period 1000000 --cpu-quota 50000 alpine ash
+```
+
+- --cpusフラグ
+
+↓は --cpu-period = 100ミリ秒、--cpu-quota = 50ミリ秒に指定するのと同じ、結果的にCPU1コアのマシンなら最大で50%割り当てることになる
+
+```
+# docker run -it --rm --cpus 0.5 alpine ash
+````
+
+許可したCPU時間の合計が搭載コア数を超えた時の挙動
+
+```
+[root@centos8 ~]# docker run -d --name foo --cpus 2 test-stress
+c35894c3e8fbe8b9d4b11bded4ef48397022ad8f6813de19c25b4e613bfbb315
+[root@centos8 ~]# docker run -d --name bar --cpus 1 test-stress
+a191965ba1ad728bc888dd0cc51552c1152d81dd9f41c0421b100bf297182ac8
+[root@centos8 ~]# docker run -d --name baz --cpus 0.5 test-stress
+54e935fa766498fa4285831d56428ec5e4a30050ad58dd706dcebba0a4f436f0
+[root@centos8 ~]# docker stats
+CONTAINER ID   NAME      CPU %     MEM USAGE / LIMIT     MEM %     NET I/O     BLOCK I/O    PIDS
+54e935fa7664   baz       49.93%    9.348MiB / 978.3MiB   0.96%     656B / 0B   0B / 0B      3
+a191965ba1ad   bar       65.66%    13.2MiB / 978.3MiB    1.35%     726B / 0B   0B / 0B      3
+c35894c3e8fb   foo       81.02%    10.95MiB / 978.3MiB   1.12%     906B / 0B   1.2MB / 0B   3
+```
+
+メモリ使用量を制限する
+
+- --memoryフラグ
+
+```
+# docker run -it --rm --memory 256M alpine ash
+```
+
+制限以上のメモリを使用するとOOM Killerによりコンテナ内のプロセスは強制終了させられる
+
+```
+[root@centos8 ~]# docker run --rm --memory 4M alpine dd if=/dev/urandom of=/dev/null bs=8M count=1
+[root@centos8 ~]# echo $?
+137
+[root@centos8 ~]# cat /var/log/messages | grep "out of memory"
+Jan  5 11:11:59 centos8 kernel: Memory cgroup out of memory: Killed process 3076562 (dd) total-vm:9768kB, anon-rss:3540kB, file-rss:832kB, shmem-rss:0kB, UID:0
+```
+
+- --memory-reservationフラグ
+
+使用するメモリを予約する、余裕がある場合は指定した--memory-reservationフラグ以上のメモリを使用できる
+
+```
+# docker run --rm --memory-reservation 64M --memory 128M alpine ash
+```
+
+プロセス数を制限する
+
+--pids-limitフラグでプロセス数を制限する
+
+```
+# docker run -it --rm --pids-limit 3 alpine ash
+```
+
+上限に達するとforkがEAGAINエラーで失敗する
+
+```
+[root@centos8 ~]# docker run -it --rm --pids-limit 3 alpine sh -c "cat & cat & cat & cat"
+sh: can't fork: Resource temporarily unavailable
+```
+
+ファイルディスクリプタ数を制限する
+--ulimit nofile=Num で制限する
+
+ファイルディスクリプタ数が上限に達するとシステムコールが失敗する
+
+```
+[root@centos8 ~]# docker run --rm --ulimit nofile=10 nginx:1.17.3-alpine
+2021/01/05 02:35:55 [warn] 1#1: 1024 worker_connections exceed open file resource limit: 10
+nginx: [warn] 1024 worker_connections exceed open file resource limit: 10
+2021/01/05 02:35:55 [emerg] 7#7: initgroups(nginx, 101) failed (24: No file descriptors available)
+2021/01/05 02:35:55 [emerg] 7#7: epoll_create() failed (24: No file descriptors available)
+2021/01/05 02:35:55 [emerg] 6#6: eventfd() failed (24: No file descriptors available)
+2021/01/05 02:35:55 [alert] 6#6: socketpair() failed (24: No file descriptors available)
+2021/01/05 02:35:55 [alert] 1#1: worker process 7 exited with fatal code 2 and cannot be respawned
+```
+
+ストレージの使用量を制限する
+--storage-opt size フラグで制限する
+
+```
+# docker run -it --rm --storage-opt size=128M alpine ash
+```
+
+IOを制限する
+/dev/sdaからの読み込みを10MB/秒に制限する
+
+```
+# docker run -it --rm --device-read-bps /dev/sda:10mb alpine ash
+```
+
+/dev/sdaへの書き込みを10MB/秒に制限する
+
+```
+# docker run -it --rm --device-write-bps /dev/sda:10mb alpine ash
+```
