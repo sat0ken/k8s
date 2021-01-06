@@ -177,4 +177,44 @@ Jan 06 12:34:55 centos8 falco[1119]: 12:34:55.402934796: Notice Container with s
 Jan 06 12:36:32 centos8 falco[1119]: 12:36:32.922479690: Error File below a known binary directory opened for writing (user=root user_loginuid=-1 command=touch /usr/bin/foo file=/usr/bin/foo parent=ash pcmdline=ash gparent=<NA> container_id=0be4616ea92a image=alpine)
 ```
 
+Falcoはホストのプロセスが/usr/bin以下に書き込みしたことを検知することはできるが、コンテナが/usr/binをbind-mountして/usr/binに書き込んだ場合は検知されない
+→openシステムコールの文字列を比較しているため
+
+
+```
+[root@centos8 ~]# docker run -it --rm -v /usr/bin:/host-usr-bin alpine ash
+/ # cd host-usr-bin/
+/host-usr-bin # touch hoge
+...
+
+↑を検知されない
+[root@centos8 ~]# journalctl -f -u falco.service
+```
+
+3.7.4 ファイルアクセスを監視する(auditd)
+auditdを利用するとFalcoでは検知できないコンテナのプロセスがホストのファイルシステムにアクセスしたことを検知できる
+
+auditdの設定
+
+```
+[root@centos8 ~]# cat /etc/audit/rules.d/audit.rules | tail -n 1
+-w /usr/bin -p wa -k usrbin
+```
+
+bind-mountして起動したコンテナから/usr/binに書き込み
+
+```
+[root@centos8 ~]# docker run -it --rm -v /usr/bin:/host-usr-bin alpine ash
+/ # cd /host-usr-bin/
+/host-usr-bin # touch hoge
+```
+
+audit.logで検知
+
+```
+type=SYSCALL msg=audit(1609911221.106:168): arch=c000003e syscall=2 success=yes exit=3 a0=7ffdfc691f57 a1=42 a2=1b6 a3=0 items=2 ppid=2554 pid=2592 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts0 ses=4294967295 comm="touch" exe="/bin/busybox" subj=system_u:system_r:spc_t:s0 key="usrbin"ARCH=x86_64 SYSCALL=open AUID="unset" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root"
+type=CWD msg=audit(1609911221.106:168): cwd="/host-usr-bin"
+type=PATH msg=audit(1609911221.106:168): item=0 name="/host-usr-bin" inode=16797827 dev=fd:00 mode=040555 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:bin_t:s0 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0OUID="root" OGID="root"
+type=PATH msg=audit(1609911221.106:168): item=1 name="hoge" inode=16799827 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:bin_t:s0 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0OUID="root" OGID="root"
+```
 
