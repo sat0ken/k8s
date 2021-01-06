@@ -241,5 +241,26 @@ Receiving objects: 100% (2085/2085), 2.95 MiB | 1.44 MiB/s, done.
 Resolving deltas: 100% (1456/1456), done.
 [root@centos8 ~]# cd docker-bench-security/
 [root@centos8 docker-bench-security]# ./docker-bench-security.sh
+# ------------------------------------------------------------------------------
+# Docker Bench for Security v1.3.5
+#
+# Docker, Inc. (c) 2015-
+#
+# Checks for dozens of common best-practices around deploying Docker containers in production.
+# Inspired by the CIS Docker Benchmark v1.2.0.
+# ------------------------------------------------------------------------------
+
+Initializing Wed Jan  6 15:37:27 JST 2021
+
+
+[INFO] 1 - Host Configuration
+
+.....
+
+[INFO] 8 - Docker Enterprise Configuration
+[INFO]   * Community Engine license, skipping section 8
+
+[INFO] Checks: 76
+[INFO] Score: 38
 ```
 
