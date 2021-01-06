@@ -111,3 +111,68 @@ fluentdに送信されるメッセージ
 2021-01-06T11:17:27.447355558+09:00 container resize 4941291b345038e7453e13cfd45df0c92ad41e15320eb637d18bc7b991479fdf (height=30, image=alpine, name=tender_feynman, width=120)
 ```
 
+
+3.7.3 コンテナの挙動を監視する(Falco)
+
+CentOS8にFalcoをインストールする
+https://falco.org/docs/getting-started/installation/
+
+```
+# yum install -y epel-release
+# yum install -y make dkms
+# yum -y install kernel-devel-$(uname -r)
+# rpm --import https://falco.org/repo/falcosecurity-3672BA8F.asc
+# curl -s -o /etc/yum.repos.d/falcosecurity.repo https://falco.org/repo/falcosecurity-rpm.repo
+# yum -y install falco
+```
+
+コンテナを実行する
+
+```
+[root@centos8 ~]# docker run -it --rm alpine ash
+/ # apk add nmap
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.12/main/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.12/community/x86_64/APKINDEX.tar.gz
+(1/7) Installing libgcc (9.3.0-r2)
+(2/7) Installing lua5.3-libs (5.3.5-r6)
+(3/7) Installing libpcap (1.9.1-r2)
+(4/7) Installing pcre (8.44-r0)
+(5/7) Installing libssh2 (1.9.0-r1)
+(6/7) Installing libstdc++ (9.3.0-r2)
+(7/7) Installing nmap (7.80-r2)
+Executing busybox-1.31.1-r16.trigger
+OK: 20 MiB in 21 packages
+/ # nmap 172.17.0.1
+Starting Nmap 7.80 ( https://nmap.org ) at 2021-01-06 03:29 UTC
+Nmap scan report for 172.17.0.1
+Host is up (0.0000060s latency).
+Not shown: 999 closed ports
+PORT   STATE SERVICE
+22/tcp open  ssh
+MAC Address: 02:42:DD:DA:02:DC (Unknown)
+
+Nmap done: 1 IP address (1 host up) scanned in 0.12 second
+```
+
+- ↑でターミナルが接続されたコンテナが起動したときのNotice
+- パッケージマネージャが実行されたときのError
+- nmapが実行されたときのNotice
+- --privileged でコンテナが起動したときのNotice
+- ホスト上のファイルシステムをbind-mountしたコンテナが起動したときのNotice
+- コンテナ内の/usr/binに書き込みフラグつきのopenがは発生したときのError
+
+```
+[root@centos8 ~]# journalctl -f -u falco.service
+...
+Jan 06 12:24:57 centos8 falco[1119]: 12:24:57.027922903: Notice A shell was spawned in a container with an attached terminal (user=root user_loginuid=-1 <NA> (id=d67c857e03a1) shell=ash parent=<NA> cmdline=ash terminal=34816 container_id=d67c857e03a1 image=<NA>)
+Jan 06 12:26:50 centos8 falco[1119]: 12:26:50.531988988: Error Package management process launched in container (user=root user_loginuid=-1 command=apk add nmap container_id=d67c857e03a1 container_name=distracted_leavitt image=alpine:latest)
+Jan 06 12:29:21 centos8 falco[1119]: 12:29:21.273035150: Notice Network tool launched in container (user=root user_loginuid=-1 command=nmap 172.17.0.1 parent_process=ash container_id=d67c857e03a1 container_name=distracted_leavitt image=alpine:latest)
+...
+Jan 06 12:32:42 centos8 falco[1119]: 12:32:42.724587617: Notice Privileged container started (user=root user_loginuid=0 command=container:b52a01491014 hungry_hugle (id=b52a01491014) image=alpine:latest)
+...
+Jan 06 12:34:55 centos8 falco[1119]: 12:34:55.402934796: Notice Container with sensitive mount started (user=root user_loginuid=0 command=container:0be4616ea92a zealous_cartwright (id=0be4616ea92a) image=alpine:latest mounts=/etc:/host-etc::true:rprivate)
+...
+Jan 06 12:36:32 centos8 falco[1119]: 12:36:32.922479690: Error File below a known binary directory opened for writing (user=root user_loginuid=-1 command=touch /usr/bin/foo file=/usr/bin/foo parent=ash pcmdline=ash gparent=<NA> container_id=0be4616ea92a image=alpine)
+```
+
+
