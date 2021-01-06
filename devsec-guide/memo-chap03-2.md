@@ -177,7 +177,7 @@ Jan 06 12:34:55 centos8 falco[1119]: 12:34:55.402934796: Notice Container with s
 Jan 06 12:36:32 centos8 falco[1119]: 12:36:32.922479690: Error File below a known binary directory opened for writing (user=root user_loginuid=-1 command=touch /usr/bin/foo file=/usr/bin/foo parent=ash pcmdline=ash gparent=<NA> container_id=0be4616ea92a image=alpine)
 ```
 
-Falcoはホストのプロセスが/usr/bin以下に書き込みしたことを検知することはできるが、コンテナが/usr/binをbind-mountして/usr/binに書き込んだ場合は検知されない
+Falcoはホストのプロセスが/usr/bin以下に書き込みしたことを検知することはできるが、コンテナが/usr/binをbind-mountして/usr/binに書き込んだ場合は検知されない  
 →openシステムコールの文字列を比較しているため
 
 
@@ -191,7 +191,7 @@ Falcoはホストのプロセスが/usr/bin以下に書き込みしたことを�
 [root@centos8 ~]# journalctl -f -u falco.service
 ```
 
-3.7.4 ファイルアクセスを監視する(auditd)
+3.7.4 ファイルアクセスを監視する(auditd)  
 auditdを利用するとFalcoでは検知できないコンテナのプロセスがホストのファイルシステムにアクセスしたことを検知できる
 
 auditdの設定
@@ -216,5 +216,30 @@ type=SYSCALL msg=audit(1609911221.106:168): arch=c000003e syscall=2 success=yes 
 type=CWD msg=audit(1609911221.106:168): cwd="/host-usr-bin"
 type=PATH msg=audit(1609911221.106:168): item=0 name="/host-usr-bin" inode=16797827 dev=fd:00 mode=040555 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:bin_t:s0 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0OUID="root" OGID="root"
 type=PATH msg=audit(1609911221.106:168): item=1 name="hoge" inode=16799827 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:bin_t:s0 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0OUID="root" OGID="root"
+```
+
+3.7.5 コンテナのリソース使用状況を監視する
+Skip
+
+#### 3.8 設定を検証する
+3.8.1 Docker Bench for Security
+
+Docker Bench for Securityを利用すると、Dockerの設定がCIS Docker Benchmarkに沿っているか検証できる  
+https://github.com/docker/docker-bench-security  
+https://www.cisecurity.org/benchmark/docker/
+
+実行する
+
+```
+[root@centos8 ~]# git clone https://github.com/docker/docker-bench-security
+Cloning into 'docker-bench-security'...
+remote: Enumerating objects: 23, done.
+remote: Counting objects: 100% (23/23), done.
+remote: Compressing objects: 100% (21/21), done.
+remote: Total 2085 (delta 8), reused 6 (delta 2), pack-reused 2062
+Receiving objects: 100% (2085/2085), 2.95 MiB | 1.44 MiB/s, done.
+Resolving deltas: 100% (1456/1456), done.
+[root@centos8 ~]# cd docker-bench-security/
+[root@centos8 docker-bench-security]# ./docker-bench-security.sh
 ```
 
