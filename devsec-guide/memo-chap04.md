@@ -51,6 +51,7 @@ some secret data
 #### 4.1.1 シークレットファイルを扱う(docker build --secret)
 
 docker build --secret を有効化する
+https://docs.docker.com/develop/develop-images/build_enhancements/
 
 ```
 [root@centos8 ~]# cat /etc/docker/daemon.json | grep buildkit
@@ -91,4 +92,262 @@ RUN --mount=type=secret,id=ssh,target=/home/testusr/.ssh/id_rsa,uid=1000
  => => writing image sha256:fc93953551dd45adf4191f44a7e8be28f71d1c1ce35db02e97cd6d6c4dd49dde                       0.0s
  => => naming to docker.io/library/foo
 ```
+
+#### 4.2 コンテナ内で安全にイメージをbuildする
+#### 4.2.1 buildkit
+
+後でやる
+
+#### 4.2.2 Kaniko
+
+https://github.com/GoogleContainerTools/kaniko
+
+後でやる
+
+#### 4.3 イメージの脆弱性を検査する
+#### 4.3.1 パッケージの脆弱性を検査する(Clair)
+
+https://github.com/quay/clair
+https://github.com/optiopay/klar
+
+```
+[root@centos8 ~]# export CLAIR_ADDR=http://127.0.0.1:6060
+[root@centos8 ~]# ./klar nginx:1.17.3-alpine
+clair timeout 1m0s
+docker timeout: 1m0s
+no whitelist file
+Analysing 2 layers
+Got results from Clair API v1
+Found 2 vulnerabilities
+Unknown: 2
+
+CVE-2019-13627: [Unknown]
+Found in: libgcrypt [1.8.4-r2]
+Fixed By: 1.8.5-r0
+
+https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-13627
+-----------------------------------------
+CVE-2019-18197: [Unknown]
+Found in: libxslt [1.1.33-r1]
+Fixed By: 1.1.33-r2
+
+https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-18197
+-----------------------------------------
+```
+
+#### 4.3.2 パッケージの脆弱性を検査する(Trivy)
+
+https://github.com/aquasecurity/trivy
+
+Trivyでnginx:1.17.3-alpineを検査する
+
+```
+[root@centos8 ~]# trivy nginx:1.17.3-alpine
+2021-01-07T17:33:27.081+0900    INFO    Need to update DB
+2021-01-07T17:33:27.082+0900    INFO    Downloading DB...
+19.58 MiB / 19.58 MiB [------------------------------------------------------------------------] 100.00% 3.72 MiB p/s 5s
+2021-01-07T17:33:35.545+0900    INFO    Detecting Alpine vulnerabilities...
+2021-01-07T17:33:35.547+0900    INFO    Trivy skips scanning programming language libraries because no supported file was detected
+
+nginx:1.17.3-alpine (alpine 3.10.2)
+===================================
+Total: 26 (UNKNOWN: 0, LOW: 2, MEDIUM: 15, HIGH: 9, CRITICAL: 0)
+
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+|    LIBRARY    | VULNERABILITY ID | SEVERITY | INSTALLED VERSION | FIXED VERSION |                 TITLE
+  |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+| freetype      | CVE-2020-15999   | MEDIUM   | 2.10.0-r0         | 2.10.0-r1     | freetype: Heap-based buffer
+  |
+|               |                  |          |                   |               | overflow due to integer
+  |
+|               |                  |          |                   |               | truncation in Load_SBit_Png
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-15999 |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+| libcrypto1.1  | CVE-2020-1967    | HIGH     | 1.1.1c-r0         | 1.1.1g-r0     | openssl: Segmentation
+  |
+|               |                  |          |                   |               | fault in SSL_check_chain
+  |
+|               |                  |          |                   |               | causes denial of service
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-1967  |
++               +------------------+----------+                   +---------------+---------------------------------------+
+|               | CVE-2019-1547    | MEDIUM   |                   | 1.1.1d-r0     | openssl: side-channel weak
+  |
+|               |                  |          |                   |               | encryption vulnerability
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-1547  |
++               +------------------+          +                   +               +---------------------------------------+
+|               | CVE-2019-1549    |          |                   |               | openssl: information
+  |
+|               |                  |          |                   |               | disclosure in fork()
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-1549  |
++               +------------------+          +                   +---------------+---------------------------------------+
+|               | CVE-2019-1551    |          |                   | 1.1.1d-r2     | openssl: Integer overflow in RSAZ     |
+|               |                  |          |                   |               | modular exponentiation on x86_64      |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-1551  |
++               +------------------+          +                   +---------------+---------------------------------------+
+|               | CVE-2020-1971    |          |                   | 1.1.1i-r0     | openssl: EDIPARTYNAME
+  |
+|               |                  |          |                   |               | NULL pointer de-reference
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-1971  |
++               +------------------+----------+                   +---------------+---------------------------------------+
+|               | CVE-2019-1563    | LOW      |                   | 1.1.1d-r0     | openssl: information
+  |
+|               |                  |          |                   |               | disclosure in PKCS7_dataDecode        |
+|               |                  |          |                   |               | and CMS_decrypt_set1_pkey
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-1563  |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+| libgcrypt     | CVE-2019-13627   | MEDIUM   | 1.8.4-r2          | 1.8.5-r0      | libgcrypt: ECDSA timing attack        |
+|               |                  |          |                   |               | allowing private key leak
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-13627 |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+| libgd         | CVE-2018-14553   | HIGH     | 2.2.5-r2          | 2.2.5-r3      | gd: NULL pointer
+  |
+|               |                  |          |                   |               | dereference in gdImageClone
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2018-14553 |
++               +------------------+----------+                   +               +---------------------------------------+
+|               | CVE-2019-11038   | MEDIUM   |                   |               | gd: Information disclosure
+  |
+|               |                  |          |                   |               | in gdImageCreateFromXbm()
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-11038 |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+| libjpeg-turbo | CVE-2019-2201    | HIGH     | 2.0.2-r0          | 2.0.3-r0      | libjpeg-turbo: several integer        |
+|               |                  |          |                   |               | overflows and subsequent
+  |
+|               |                  |          |                   |               | segfaults when attempting to          |
+|               |                  |          |                   |               | compress/decompress gigapixel...      |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-2201  |
++               +------------------+          +                   +---------------+---------------------------------------+
+|               | CVE-2020-13790   |          |                   | 2.0.4-r1      | libjpeg-turbo: heap-based buffer      |
+|               |                  |          |                   |               | over-read in get_rgb_row() in rdppm.c |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-13790 |
++---------------+------------------+          +-------------------+---------------+---------------------------------------+
+| libssl1.1     | CVE-2020-1967    |          | 1.1.1c-r0         | 1.1.1g-r0     | openssl: Segmentation
+  |
+|               |                  |          |                   |               | fault in SSL_check_chain
+  |
+|               |                  |          |                   |               | causes denial of service
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-1967  |
++               +------------------+----------+                   +---------------+---------------------------------------+
+|               | CVE-2019-1547    | MEDIUM   |                   | 1.1.1d-r0     | openssl: side-channel weak
+  |
+|               |                  |          |                   |               | encryption vulnerability
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-1547  |
++               +------------------+          +                   +               +---------------------------------------+
+|               | CVE-2019-1549    |          |                   |               | openssl: information
+  |
+|               |                  |          |                   |               | disclosure in fork()
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-1549  |
++               +------------------+          +                   +---------------+---------------------------------------+
+|               | CVE-2019-1551    |          |                   | 1.1.1d-r2     | openssl: Integer overflow in RSAZ     |
+|               |                  |          |                   |               | modular exponentiation on x86_64      |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-1551  |
++               +------------------+          +                   +---------------+---------------------------------------+
+|               | CVE-2020-1971    |          |                   | 1.1.1i-r0     | openssl: EDIPARTYNAME
+  |
+|               |                  |          |                   |               | NULL pointer de-reference
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-1971  |
++               +------------------+----------+                   +---------------+---------------------------------------+
+|               | CVE-2019-1563    | LOW      |                   | 1.1.1d-r0     | openssl: information
+  |
+|               |                  |          |                   |               | disclosure in PKCS7_dataDecode        |
+|               |                  |          |                   |               | and CMS_decrypt_set1_pkey
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-1563  |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+| libxml2       | CVE-2019-19956   | HIGH     | 2.9.9-r2          | 2.9.9-r3      | libxml2: memory leak in
+  |
+|               |                  |          |                   |               | xmlParseBalancedChunkMemoryRecover    |
+|               |                  |          |                   |               | in parser.c
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-19956 |
++               +------------------+----------+                   +---------------+---------------------------------------+
+|               | CVE-2020-24977   | MEDIUM   |                   | 2.9.9-r4      | libxml2: Buffer Overflow
+  |
+|               |                  |          |                   |               | vulnerability in
+  |
+|               |                  |          |                   |               | xmlEncodeEntitiesInternal
+  |
+|               |                  |          |                   |               | at libxml2/entities.c
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-24977 |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+| libxslt       | CVE-2019-13117   | HIGH     | 1.1.33-r1         | 1.1.33-r3     | libxslt: an xsl number with certain   |
+|               |                  |          |                   |               | format strings could lead to a...     |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-13117 |
++               +------------------+          +                   +               +---------------------------------------+
+|               | CVE-2019-13118   |          |                   |               | libxslt: read of uninitialized        |
+|               |                  |          |                   |               | stack data due to too narrow          |
+|               |                  |          |                   |               | xsl:number instruction...
+  |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-13118 |
++               +------------------+          +                   +---------------+---------------------------------------+
+|               | CVE-2019-18197   |          |                   | 1.1.33-r2     | libxslt: use after free in
+  |
+|               |                  |          |                   |               | xsltCopyText in transform.c
+  |
+|               |                  |          |                   |               | could lead to information...          |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2019-18197 |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+| musl          | CVE-2020-28928   | MEDIUM   | 1.1.22-r3         | 1.1.22-r4     | In musl libc through 1.2.1,
+  |
+|               |                  |          |                   |               | wcsnrtombs mishandles particular      |
+|               |                  |          |                   |               | combinations of destination buffer... |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-28928 |
++---------------+                  +          +                   +               +
+  +
+| musl-utils    |                  |          |                   |               |
+  |
+|               |                  |          |                   |               |
+  |
+|               |                  |          |                   |               |
+  |
+|               |                  |          |                   |               |
+  |
++---------------+------------------+          +-------------------+---------------+---------------------------------------+
+| pcre          | CVE-2020-14155   |          | 8.43-r0           | 8.43-r1       | pcre: integer overflow in libpcre     |
+|               |                  |          |                   |               | -->avd.aquasec.com/nvd/cve-2020-14155 |
++---------------+------------------+----------+-------------------+---------------+---------------------------------------+
+```
+
+#### 4.3.3 パッケージ以外の脆弱性を検査する(Dockle)
+
+```
+[root@centos8 ~]# dockle nginx:1.17.3-alpine
+WARN    - CIS-DI-0001: Create a user for the container
+        * Last user should not be root
+INFO    - CIS-DI-0005: Enable Content trust for Docker
+        * export DOCKER_CONTENT_TRUST=1 before docker pull/build
+INFO    - CIS-DI-0006: Add HEALTHCHECK instruction to the container image
+        * not found HEALTHCHECK statement
+```
+
+#### 4.4 改ざんされたイメージのデプロイを防ぐ
+#### 4.4.1 イメージのダイジェスト(ハッシュ値)を指定する
+
+Skip
+
+#### 4.4.2 Docker Content Trust(Notary)で署名する
+
+Skip
+
+#### 4.5 プライベートレジストリを構築する(Harbor)
+#### 4.5.1 Harborをインストールする
+
+https://github.com/goharbor/harbor
+
+
+
 
