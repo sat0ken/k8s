@@ -47,3 +47,48 @@ repositories
 [root@centos8 alpine]# cat root/.some-secret
 some secret data
 ```
+
+#### 4.1.1 シークレットファイルを扱う(docker build --secret)
+
+docker build --secret を有効化する
+
+```
+[root@centos8 ~]# cat /etc/docker/daemon.json | grep buildkit
+    "features": {"buildkit": true},
+[root@centos8 alpine]# systemctl restart docker
+```
+
+SSHにアクセス可能なDockerfileとdocker build --secret コマンドの使用
+
+```
+[root@centos8 ubuntu]# cat Dockerfile
+# syntax=docker/dockerfile:1.1-experimental
+
+FROM ubuntu:18.04
+RUN apt-get update && apt-get install -y openssh-client && \
+ useradd -m -u 1000 testusr
+USER testusr
+RUN mkdir -p -m 0700 /home/testusr/.ssh
+RUN --mount=type=secret,id=ssh,target=/home/testusr/.ssh/id_rsa,uid=1000
+[root@centos8 ubuntu]# docker build -t foo --secret id=ssh,src=/root/.ssh/id_rsa .
+[+] Building 3.8s (12/12) FINISHED
+ => [internal] load .dockerignore                                                                                  0.0s
+ => => transferring context: 2B                                                                                    0.0s
+ => [internal] load build definition from Dockerfile                                                               0.0s
+ => => transferring dockerfile: 377B                                                                               0.0s
+ => resolve image config for docker.io/docker/dockerfile:1.1-experimental                                          1.9s
+ => CACHED docker-image://docker.io/docker/dockerfile:1.1-experimental@sha256:de85b2f3a3e8a2f7fe48e8e84a65f6fdd5c  0.0s
+ => [internal] load build definition from Dockerfile                                                               0.0s
+ => => transferring dockerfile: 377B                                                                               0.0s
+ => [internal] load .dockerignore                                                                                  0.0s
+ => [internal] load metadata for docker.io/library/ubuntu:18.04                                                    0.7s
+ => [1/4] FROM docker.io/library/ubuntu:18.04@sha256:fd25e706f3dea2a5ff705dbc3353cf37f08307798f3e360a13e9385840f7  0.0s
+ => CACHED [2/4] RUN apt-get update && apt-get install -y openssh-client &&  useradd -m -u 1000 testusr            0.0s
+ => [3/4] RUN mkdir -p -m 0700 /home/testusr/.ssh                                                                  0.3s
+ => [4/4] RUN --mount=type=secret,id=ssh,target=/home/testusr/.ssh/id_rsa,uid=1000                                 0.5s
+ => exporting to image                                                                                             0.1s
+ => => exporting layers                                                                                            0.0s
+ => => writing image sha256:fc93953551dd45adf4191f44a7e8be28f71d1c1ce35db02e97cd6d6c4dd49dde                       0.0s
+ => => naming to docker.io/library/foo
+```
+
