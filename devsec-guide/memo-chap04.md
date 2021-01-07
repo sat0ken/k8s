@@ -349,5 +349,200 @@ Skip
 https://github.com/goharbor/harbor
 
 
+```
+[root@centos8 harbor]# ./install.sh --with-clair --with-notary --with-chartmuseum
+
+[Step 0]: checking if docker is installed ...
+
+Note: docker version: 20.10.2
+
+[Step 1]: checking docker-compose is installed ...
+
+Note: docker-compose version: 1.27.4
+
+[Step 2]: loading Harbor images ...
+72021dc640d8: Loading layer [==================================================>]  34.51MB/34.51MB
+7910849b33b6: Loading layer [==================================================>]  6.779MB/6.779MB
+06f8c409309f: Loading layer [==================================================>]  8.993MB/8.993MB
+1184d84d88ef: Loading layer [==================================================>]  173.6kB/173.6kB
+cdd9ba89482e: Loading layer [==================================================>]  152.6kB/152.6kB
+26740b4a9b89: Loading layer [==================================================>]  66.56kB/66.56kB
+56da0269ee28: Loading layer [==================================================>]  17.41kB/17.41kB
+9788bddc3377: Loading layer [==================================================>]  15.36kB/15.36kB
+Loaded image: goharbor/harbor-portal:v2.1.3
+bd0187afcaea: Loading layer [==================================================>]  8.071MB/8.071MB
+a560372832d6: Loading layer [==================================================>]  3.584kB/3.584kB
+9b614956de45: Loading layer [==================================================>]   2.56kB/2.56kB
+f90e06d4a8f0: Loading layer [==================================================>]  63.96MB/63.96MB
+be27aa2f3572: Loading layer [==================================================>]  64.78MB/64.78MB
+Loaded image: goharbor/harbor-jobservice:v2.1.3
+8faeb4338473: Loading layer [==================================================>]  35.94MB/35.94MB
+f5d31a9d7d81: Loading layer [==================================================>]  3.072kB/3.072kB
+24b9420d082c: Loading layer [==================================================>]   59.9kB/59.9kB
+5b2a87b87d06: Loading layer [==================================================>]  61.95kB/61.95kB
+Loaded image: goharbor/redis-photon:v2.1.3
+5283593b1862: Loading layer [==================================================>]  4.926MB/4.926MB
+1f3837f98b68: Loading layer [==================================================>]  6.343MB/6.343MB
+d275be601d07: Loading layer [==================================================>]  15.84MB/15.84MB
+a28b9cd51ad8: Loading layer [==================================================>]  27.97MB/27.97MB
+6ca0eed54c12: Loading layer [==================================================>]  22.02kB/22.02kB
+27bf34c977d0: Loading layer [==================================================>]  15.84MB/15.84MB
+Loaded image: goharbor/notary-server-photon:v2.1.3
+dc5bc7aff8ca: Loading layer [==================================================>]  111.8MB/111.8MB
+dc8328e19685: Loading layer [==================================================>]  12.59MB/12.59MB
+d041752aa703: Loading layer [==================================================>]  3.072kB/3.072kB
+e337675f6c90: Loading layer [==================================================>]  49.15kB/49.15kB
+f5bc237280d3: Loading layer [==================================================>]  4.096kB/4.096kB
+e755dfec8710: Loading layer [==================================================>]  13.46MB/13.46MB
+Loaded image: goharbor/clair-photon:v2.1.3
+a7a4db38256b: Loading layer [==================================================>]  6.237MB/6.237MB
+87151122a1e7: Loading layer [==================================================>]  4.096kB/4.096kB
+9423c6ccfa58: Loading layer [==================================================>]  3.072kB/3.072kB
+5b33926a12b1: Loading layer [==================================================>]  23.51MB/23.51MB
+8314fcee5545: Loading layer [==================================================>]  9.432MB/9.432MB
+662ea98e6ca6: Loading layer [==================================================>]  33.76MB/33.76MB
+Loaded image: goharbor/trivy-adapter-photon:v2.1.3
+7a35644f5612: Loading layer [==================================================>]  77.47MB/77.47MB
+aea5e7931b4f: Loading layer [==================================================>]  56.14MB/56.14MB
+85011a40c597: Loading layer [==================================================>]   2.56kB/2.56kB
+9492557f0459: Loading layer [==================================================>]  1.536kB/1.536kB
+7166c618fc33: Loading layer [==================================================>]  18.43kB/18.43kB
+db498ea36dc3: Loading layer [==================================================>]  4.044MB/4.044MB
+fe783ba3ed96: Loading layer [==================================================>]  266.2kB/266.2kB
+Loaded image: goharbor/prepare:v2.1.3
+040bb6ac6bbd: Loading layer [==================================================>]  4.933MB/4.933MB
+b205abac2507: Loading layer [==================================================>]  4.096kB/4.096kB
+3cc94eef4661: Loading layer [==================================================>]  20.51MB/20.51MB
+a20b7ec432b7: Loading layer [==================================================>]  3.072kB/3.072kB
+8c93ddeb06b0: Loading layer [==================================================>]  25.91MB/25.91MB
+5b820ad21060: Loading layer [==================================================>]  47.24MB/47.24MB
+Loaded image: goharbor/harbor-registryctl:v2.1.3
+6cfbab833c05: Loading layer [==================================================>]  74.89MB/74.89MB
+5d9dae6b4be3: Loading layer [==================================================>]  3.584kB/3.584kB
+274111b2154b: Loading layer [==================================================>]  3.072kB/3.072kB
+24aa1969673b: Loading layer [==================================================>]   2.56kB/2.56kB
+13ca9a511d7e: Loading layer [==================================================>]  3.072kB/3.072kB
+12340e94a4b6: Loading layer [==================================================>]  3.584kB/3.584kB
+ed1d3427850e: Loading layer [==================================================>]  12.29kB/12.29kB
+f403d83ebf58: Loading layer [==================================================>]  3.584kB/3.584kB
+Loaded image: goharbor/harbor-log:v2.1.3
+ac275526e8b7: Loading layer [==================================================>]  63.76MB/63.76MB
+7cc25b455629: Loading layer [==================================================>]  78.31MB/78.31MB
+fec4c3ccd0b1: Loading layer [==================================================>]  6.144kB/6.144kB
+7f202bd62270: Loading layer [==================================================>]   2.56kB/2.56kB
+a468a2ead8d0: Loading layer [==================================================>]   2.56kB/2.56kB
+88ab2997d705: Loading layer [==================================================>]   2.56kB/2.56kB
+119f7fb77e7c: Loading layer [==================================================>]   2.56kB/2.56kB
+e0eb7950afe7: Loading layer [==================================================>]  11.26kB/11.26kB
+Loaded image: goharbor/harbor-db:v2.1.3
+aad26a60848a: Loading layer [==================================================>]  6.779MB/6.779MB
+Loaded image: goharbor/nginx-photon:v2.1.3
+4146d3da77a1: Loading layer [==================================================>]  4.932MB/4.932MB
+d47cdb202be9: Loading layer [==================================================>]  62.71MB/62.71MB
+21eba4461bc1: Loading layer [==================================================>]  3.072kB/3.072kB
+487faec285d2: Loading layer [==================================================>]  4.096kB/4.096kB
+24a42bcfcda4: Loading layer [==================================================>]  63.53MB/63.53MB
+Loaded image: goharbor/chartmuseum-photon:v2.1.3
+3928a230d44f: Loading layer [==================================================>]  8.072MB/8.072MB
+5eb1dffa1144: Loading layer [==================================================>]  3.584kB/3.584kB
+a6aaade6f42d: Loading layer [==================================================>]   2.56kB/2.56kB
+b1d9936cf892: Loading layer [==================================================>]  54.28MB/54.28MB
+a0eae0d31be7: Loading layer [==================================================>]  5.632kB/5.632kB
+2580d019fed2: Loading layer [==================================================>]  60.42kB/60.42kB
+113646e55716: Loading layer [==================================================>]  11.78kB/11.78kB
+b0c71cec7d35: Loading layer [==================================================>]   55.1MB/55.1MB
+3f622fe858eb: Loading layer [==================================================>]   2.56kB/2.56kB
+Loaded image: goharbor/harbor-core:v2.1.3
+046f35736958: Loading layer [==================================================>]  4.933MB/4.933MB
+bfc4a424487c: Loading layer [==================================================>]  4.096kB/4.096kB
+adea95e62ff3: Loading layer [==================================================>]  3.072kB/3.072kB
+a8950efbcaf0: Loading layer [==================================================>]  20.51MB/20.51MB
+7dff05d49fa5: Loading layer [==================================================>]  21.33MB/21.33MB
+Loaded image: goharbor/registry-photon:v2.1.3
+e9222690ad3e: Loading layer [==================================================>]  4.926MB/4.926MB
+c194ec78c6d4: Loading layer [==================================================>]  6.343MB/6.343MB
+11ed9d4d704d: Loading layer [==================================================>]  14.43MB/14.43MB
+be10dcc39732: Loading layer [==================================================>]  27.97MB/27.97MB
+b3d46f5af780: Loading layer [==================================================>]  22.02kB/22.02kB
+de875ccaa613: Loading layer [==================================================>]  14.43MB/14.43MB
+Loaded image: goharbor/notary-signer-photon:v2.1.3
+f60395b31a75: Loading layer [==================================================>]  4.933MB/4.933MB
+ccc8622e314b: Loading layer [==================================================>]  4.096kB/4.096kB
+333864843b25: Loading layer [==================================================>]  3.072kB/3.072kB
+bd374121ff18: Loading layer [==================================================>]  9.427MB/9.427MB
+1135c12b800b: Loading layer [==================================================>]  10.25MB/10.25MB
+Loaded image: goharbor/clair-adapter-photon:v2.1.3
 
 
+[Step 3]: preparing environment ...
+
+[Step 4]: preparing harbor configs ...
+prepare base dir is set to /root/harbor
+Generated configuration file: /config/portal/nginx.conf
+Generated configuration file: /config/log/logrotate.conf
+Generated configuration file: /config/log/rsyslog_docker.conf
+Generated configuration file: /config/nginx/nginx.conf
+Generated configuration file: /config/core/env
+Generated configuration file: /config/core/app.conf
+Generated configuration file: /config/registry/config.yml
+Generated configuration file: /config/registryctl/env
+Generated configuration file: /config/registryctl/config.yml
+Generated configuration file: /config/db/env
+Generated configuration file: /config/jobservice/env
+Generated configuration file: /config/jobservice/config.yml
+Generated and saved secret to file: /data/secret/keys/secretkey
+Successfully called func: create_root_cert
+Successfully called func: create_root_cert
+Successfully called func: create_cert
+Copying certs for notary signer
+Copying nginx configuration file for notary
+Generated configuration file: /config/nginx/conf.d/notary.upstream.conf
+Generated configuration file: /config/nginx/conf.d/notary.server.conf
+Generated configuration file: /config/notary/server-config.postgres.json
+Generated configuration file: /config/notary/server_env
+Generated and saved secret to file: /data/secret/keys/defaultalias
+Generated configuration file: /config/notary/signer_env
+Generated configuration file: /config/notary/signer-config.postgres.json
+Generated configuration file: /config/clair/postgres_env
+Generated configuration file: /config/clair/config.yaml
+Generated configuration file: /config/clair/clair_env
+Generated configuration file: /config/clair-adapter/env
+Generated configuration file: /config/chartserver/env
+Generated configuration file: /compose_location/docker-compose.yml
+Clean up the input dir
+
+
+
+[Step 5]: starting Harbor ...
+Creating network "harbor_harbor" with the default driver
+Creating network "harbor_harbor-clair" with the default driver
+Creating network "harbor_harbor-notary" with the default driver
+Creating network "harbor_harbor-chartmuseum" with the default driver
+Creating network "harbor_notary-sig" with the default driver
+Creating harbor-log ... done
+Creating registryctl   ... done
+Creating redis         ... done
+Creating harbor-db     ... done
+Creating chartmuseum   ... done
+Creating registry      ... done
+Creating harbor-portal ... done
+Creating notary-signer ... done
+Creating harbor-core   ... done
+Creating clair         ... done
+Creating notary-server     ... done
+Creating clair-adapter     ... done
+Creating harbor-jobservice ... done
+Creating nginx             ... done
+✔ ----Harbor has been installed and started successfully.----
+```
+
+HarborにイメージをPushする
+
+```
+[root@centos8 ~]# docker tag nginx:1.17.3-alpine harbor.example.com/library/nginx:1.17.3-alpine
+[root@centos8 ~]# docker push harbor.example.com/library/nginx:1.17.3-alpine
+The push refers to repository [harbor.example.com/library/nginx]
+3e76d2df1790: Pushed
+03901b4a2ea8: Pushed
+1.17.3-alpine: digest: sha256:1907fa667b160c40dcc7f99d884f4b12cf49e487408a869857e75e64838fc9b6 size: 739
+```
