@@ -5,7 +5,7 @@
 - アクセスルールにはIngressとEgressトラフィックを指定できる
 - Namespace内にNetworkPolicyリソースが存在しない場合はデフォルト許可になるのでデフォルト拒否にしたい場合は、<br>空のルールのリソースをNamespaceに作成する
 
-↓ デフォルト拒否
+デフォルト拒否
 ```
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -16,4 +16,23 @@ spec:
   policyTypes:
   - Ingress
   - Egress
+```
+
+メタデータAPIへのアクセスを禁止する
+```
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-metadata
+  namespace: default
+spec:
+  podSelector: {}
+  ingress:
+  - {}
+  egress:
+  - to:
+    - ipBlock:
+        cider: 0.0.0.0/0
+        except:
+        - 169.254.169.254/32
 ```
