@@ -36,3 +36,34 @@ spec:
         except:
         - 169.254.169.254/32
 ```
+
+#### 6.2 Istioを使ってPod間の通信を守る
+#### 6.2.1 アプリケーションを相互認証する
+
+Istioが提供する機能
+
+- Traffic Management<br>
+  ロードバランシング、カナリアリリース、トラフィックのミラーリング、通信レート制限、サーキットブレーカ
+- Observability<br>
+  ログやメトリクスの収集、分散トレーシング
+- Security<br>
+  mTLS認証、RBACによるリクエストの認可
+ 
+
+default namespace に mTLSを有効にする
+```
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: STRICT
+```
+
+appをデプロイ
+```
+$ kubectl apply -f samples/httpbin/httpbin.yaml
+$ kubectl apply -f samples/sleep/sleep.yaml
+```
