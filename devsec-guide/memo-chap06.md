@@ -51,6 +51,8 @@ Istioが提供する機能
  
 
 default namespace に mTLSを有効にする
+https://istio.io/latest/docs/tasks/security/authentication/authn-policy/
+
 ```
 apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
@@ -66,4 +68,16 @@ appをデプロイ
 ```
 $ kubectl apply -f samples/httpbin/httpbin.yaml
 $ kubectl apply -f samples/sleep/sleep.yaml
+```
+
+X-Forwarded-Client-Certが存在することを確認
+```
+$ kubectl exec "$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})" -c sleep -- curl http://httpbin:8000/headers -s | grep X-Forwarded-Client-Cert | sed 's/Hash=[a-z0-9]*;/Hash=<redacted>;/'
+    "X-Forwarded-Client-Cert": "By=spiffe://cluster.local/ns/default/sa/httpbin;Hash=<redacted>;Subject=\"\";URI=spiffe://cluster.local/ns/default/sa/sleep"
+```
+
+別のnamespaceからのリクエストははじかれる
+```
+$ kubectl exec "$(kubectl get pod -n foo -l app=sleep -o jsonpath={.items..metadata.name})" -c sleep -n foo -- curl http://httpbin.default.svc.cluster.local:8000/headers -s
+command terminated with exit code 56
 ```
