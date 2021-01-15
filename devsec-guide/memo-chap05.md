@@ -23,7 +23,7 @@ https://kubernetes.io/docs/concepts/security/overview/#the-4c-s-of-cloud-native-
 |  Namespace |  RBACによるAPIアクセス制限, ResourceQuotaによるリソース使用量の制限  |
 |  Cluster |  RBACによるAPIアクセス制限, etcdの暗号化, システムコンポーネント間通信の暗号化  |
 
-#### 5.2 ミスや攻撃から守るAPIのアクセス制御
+### 5.2 ミスや攻撃から守るAPIのアクセス制御
 
 ・k8s APIのアクセス制御は3段階に分かれる
 
@@ -34,7 +34,7 @@ https://kubernetes.io/docs/concepts/security/overview/#the-4c-s-of-cloud-native-
 3. 受付制御
    リクエスト内容の検証やポリシに応じたリクエスト内容の書き換えが可能
 
-#### 5.3 認証モジュールの選び方と使い方
+### 5.3 認証モジュールの選び方と使い方
 #### 5.3.1 アカウント種別と対応する認証モジュールの違い
 
 APIサーバの認証対象
@@ -51,3 +51,42 @@ OpenID ConnectのID tokenをAPIサーバの認証に利用するモジュール�
 #### 5.3.4 Webhook Token Authenticationを利用した外部認証基盤との連携
 
 Webhook Token Authenticationを利用すると外部認証基盤でTokenの検証が実施できる
+
+### 5.4 Service Accountによるサービス認証とアカウント管理
+
+- Service Accountはサービスのアカウントを管理するAPIリソース
+- 発行されたサービス用Tokenは認証モジュールのService Account Tokenを使って認証に利用する
+- Tokenの発行機能だけでなくPodの権限管理機能も提供している
+
+#### 5.4.1 APIによるアカウントの管理
+
+kubectl からアカウントを作成する
+Tokenは `bob-blog-token-kgk6l` という名前のSecretに格納されている
+```
+$ kubectl create sa bob-blog
+serviceaccount/bob-blog created
+$ kubectl get sa bob-blog -o yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  creationTimestamp: "2021-01-15T02:18:44Z"
+  name: bob-blog
+  namespace: default
+  resourceVersion: "615519"
+  selfLink: /api/v1/namespaces/default/serviceaccounts/bob-blog
+  uid: 7e4290a6-5779-4473-9cf5-e1c2b6eb2ca7
+secrets:
+- name: bob-blog-token-kgk6l
+$ kubectl get secret bob-blog-token-kgk6l
+NAME                   TYPE                                  DATA   AGE
+bob-blog-token-kgk6l   kubernetes.io/service-account-token   3      2m5s
+```
+TokenコントローラはService Accountが作成されたことを検知すると、サービス用のTokenを発行する<br>
+発行したTokenはService Accountと同じNamespaceのSecretに格納する
+
+#### 5.4.2 Service AccountによるPodの権限管理
+
+・PodとService Accountの連携の仕組み<br>
+  デフォルトの挙動で全てのPodがService AccountのTokenをVolumeマウントしている<br>
+  デフォルトでマウントされるService AccountはPodと同じNamespaceのdefaultアカウント<br>
+  AdmissionコントローラのService AccountプラグインはPodの.spec.serviceAccountNameが設定されていない場合、defaultアカウントをセットする
