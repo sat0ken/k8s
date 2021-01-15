@@ -42,7 +42,7 @@ metadata:
 #自動マウント機能を無効化する
 automountServiceAccountToken: false
 ```
-↑このService Accountで起動するPodはTokenをVolumeマウントしなくなる
+↑このService Accountで起動するPodはTokenをVolumeマウントしなくなる<br>
 トークンを利用する場合は、明示的に指定する
 ```
 spec:
@@ -50,4 +50,70 @@ spec:
   automountServiceAccountToken: true
   containers:
   - image: nginx:1.18.0-alpine
+```
+
+#### 13.2 RBAC
+
+Role = どういった操作を許可するか<br>
+RoleBinding = Service AccountなどのUserに対してRoleを紐づけることで権限を付与する
+
+リソースのレベルに応じて2種類ある
+- NamespaceレベルのリソースへのRoleとRoleBinding
+- CluserレベルのリソースへのClusterRoleとClusterRoleBinding
+
+RoleとClusterRole
+Roleに指定可能な実行できる操作(verb)<br>
+| 種別   | 内容       | 
+| ------ | ---------- | 
+| *      | 全ての処理 | 
+| create | 作成       | 
+| delete | 削除       | 
+| get    | 取得       | 
+| list   | 一覧取得   | 
+| patch  | 一部変更   | 
+| update | 更新       | 
+| watch | 変更の追従  | 
+
+Roleの作成
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sample-role
+  namespace: default
+rules:
+- apiGroups:
+  - 'apps'
+  - 'extensions'
+  resources:
+  - replicasets
+  - deployments
+  - deployments/scale
+  verbs:
+  - "*"
+```
+
+ClusterRoleの作成
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sample-clusterrole
+rules:
+- apiGroups:
+  - apps
+  - extensions
+  resources:
+  - replicasets
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+- nonResourceURLs:
+  - /healthz
+  - /healthz/*
+  - /version
+  verbs:
+  - get
 ```
