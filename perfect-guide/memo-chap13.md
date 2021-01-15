@@ -117,3 +117,68 @@ rules:
   verbs:
   - get
 ```
+
+ClusterRoleのAggregation
+labelがついたClusterRoleを集約して合体させる
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sub-clusterrole1
+  labels:
+    app: sample-rbac
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sub-clusterrole2
+  labels:
+    app: sample-rbac
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sample-aggregated-clusterrole
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      app: sample-rbac
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+```
+
+↑の１と２のClusterRoleが集約している
+```
+$ k get clusterrole sample-aggregated-clusterrole -o yaml | yq -y .rules
+- apiGroups:
+    - apps
+  resources:
+    - deployments
+  verbs:
+    - get
+- apiGroups:
+    - ''
+  resources:
+    - services
+  verbs:
+    - get
+```
