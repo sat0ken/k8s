@@ -87,6 +87,41 @@ TokenコントローラはService Accountが作成されたことを検知する
 #### 5.4.2 Service AccountによるPodの権限管理
 
 ・PodとService Accountの連携の仕組み<br>
-  デフォルトの挙動で全てのPodがService AccountのTokenをVolumeマウントしている<br>
-  デフォルトでマウントされるService AccountはPodと同じNamespaceのdefaultアカウント<br>
-  AdmissionコントローラのService AccountプラグインはPodの.spec.serviceAccountNameが設定されていない場合、defaultアカウントをセットする
+　デフォルトの挙動で全てのPodがService AccountのTokenをVolumeマウントしている<br>
+　デフォルトでマウントされるService AccountはPodと同じNamespaceのdefaultアカウント<br>
+　AdmissionコントローラのService AccountプラグインはPodの.spec.serviceAccountNameが設定されていない場合、defaultアカウントをセットする
+
+### 5.5 認可モジュールの種類と利用方法
+認可はあらかじめ定義したポリシに基づいて、リクエストされたアクションの可否を判定するステップ
+
+#### 5.5.1 認可モジュール一覧と選び方
+
+|  名前  |  概要  |
+| ---- | ---- |
+|  Node  |  Podがスケジュールされたkubeletのみにリクエストを許可する |
+|  RBAC  |  ロールベースのアクセ制御でAPI経由で動的に制御できる  |
+|  Webhook  |  設定したWebhoookに対して、HTTP POSTメッセージで認可を委任する  |
+|  AlwaysDeny  |  全てのアクセスを拒否するテスト用モジュール  |
+|  AlwaysAllow  |  全てのアクセスを許可する(認可を実施しない)モジュール |
+
+各モジュールはkube-apiserverの `--authorization-mode` フラグから設定する
+
+#### 5.5.2 認可ポリシの定義
+
+認可ポリシでは何にアクセスの主体が何に対して何の操作を許可するかを定義する<br>
+・ Subject(誰に)<br>
+　ユーザ、グループ、Service Account<br>
+・Object(何に対する)<br>
+　`/version`, `/healthz`, `/metricts`, `/apis`, `/api/v1/node`<br>
+・Verb(何の操作を)<br>
+　Create, Delete, Update, Get, List, Watch<br>
+→許可するか拒否するか
+
+Kubernetes APIの分類
+|  種類  |  概要  | 例  |
+| ---- | ---- | ---- |
+|  リソースAPI  |  SecretやPodといったk8sのリソースを操作するAPI |  /api/v1/namespaces/default/pods/alpine<br>/api/v1/nodes/kind-control-plane<br>/api/apps/v1/namespaces/default/deployments |
+|  非リソースAPI  |  メトリクスやログ、Versionなどリソースに紐づかないAPI  |  /version<br>/metrics<br>/openapi/v2  |
+
+
+
