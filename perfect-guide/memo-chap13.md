@@ -299,7 +299,7 @@ SecurityContextに設定可能な項目
 | procMount   |    | 
 | readOnlyRootFilesystem    | rootファイルシステムをReadOnlyにするかどうか       | 
 | runAsGroup   | 実行するグループ   | 
-| runAsNonRoot  | rootで実行するかどうか   | 
+| runAsNonRoot  | rootでの実行を拒否する   | 
 | runAsUser | 実行するユーザ       | 
 | seLinuxOptions | SELinuxのオプション  | 
 | seccompProfile | seccompのオプション  | 
@@ -370,4 +370,157 @@ spec:
   dnsPolicy: ClusterFirst
   restartPolicy: Never
 status: {}
+```
+ReadOnlyなので書き込みできない
+```
+$ k exec sample-readonly -- sh -c "echo hoge >> hoge.txt"
+sh: can't create hoge.txt: Read-only file system
+```
+
+#### 13.4 PodSecurityContext
+PodSecurityContextに設定可能な項目
+
+| 設定項目   | 内容       | 
+| ------ | ---------- | 
+| fsGroup | ファイルシステムのグループを指定       | 
+| fsGroupChangePolicy | 所有権とパーミッションを指定       | 
+| runAsGroup      | 実行グループ | 
+| runAsNonRoot   | rootでの実行を拒否する   | 
+| runAsUser      | 実行ユーザ | 
+| seLinuxOptions   | SELinuxのオプション   | 
+| seccompProfile   | seccompのオプション   | 
+| supplementalGroups      | プライマリGIDに追加で付与するGIDのリストを指定 | 
+| sysctls   | 上書きするカーネルパラメータを指定   | 
+
+実行ユーザの変更
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: sample-runuser
+  name: sample-runuser
+spec:
+  securityContext:
+    runAsUser: 65534
+    runAsGroup: 65534
+    supplementalGroups:
+    - 1001
+    - 1002
+  containers:
+  - args:
+    - sleep
+    - "3600"
+    image: alpine
+    name: sample-runuser
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+```
+
+```
+$ k exec sample-runuser -- id
+uid=65534(nobody) gid=65534(nobody) groups=1001,1002
+```
+
+rootユーザでの実行制限
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: sample-noroot
+  name: sample-noroot
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+  - image: nginx:1.16
+    name: sample-noroot
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+```
+
+nginxがrootでの起動に失敗するのでFail
+```
+$ kubectl describe pod sample-noroot | tail -n 5
+  Type     Reason     Age                From               Message
+  ----     ------     ----               ----               -------
+  Normal   Scheduled  56s                default-scheduler  Successfully assigned default/sample-noroot to kind-worker2
+  Normal   Pulled     12s (x6 over 55s)  kubelet            Container image "nginx:1.16" already present on machine
+  Warning  Failed     12s (x6 over 55s)  kubelet            Error: container has runAsNonRoot and image will run as root
+```
+
+ファイルシステムのグループ指定
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-fsgroup
+spec:
+  securityContext:
+    fsGroup: 1001
+  containers:
+  - image: nginx:1.16
+    name: sample-fsgroup
+    volumeMounts:
+    - mountPath: /cache
+      name: cache-volume
+  volumes:
+  - name: cache-volume
+    emptyDir: {}
+```
+
+ディレクトリのパーミッションを確認
+```
+$ kubectl exec sample-fsgroup -- ls -ld /cache
+drwxrwsrwx 2 root 1001 4096 Jan 18 08:35 /cache
+```
+
+sysctlによるカーネルパラメータの設定
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-sysctl
+spec:
+  securityContext:
+    sysctls:
+    - name: net.core.somaxconn
+      value: "12345"
+  containers:
+  - image: nginx:1.16
+    name: sample-sysctl
+```
+
+```
+$ k get pod
+NAME            READY   STATUS            RESTARTS   AGE
+sample-sysctl   0/1     SysctlForbidden   0          45s
+```
+
+カーネルパラメータをInit Containerで変更する
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-sysctl-initcontainer
+spec:
+  initContainers:
+  - name: initialize-sysctl
+    image: busybox:1.27
+    command:
+    - /bin/sh
+    - -c
+    - sysctl -w net.core.somaxconn=12345
+    securityContext:
+      privileged: true
+  containers:
+  - image: nginx:1.16
+    name: sample-sysctl-initcontainer
 ```
