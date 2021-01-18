@@ -524,3 +524,33 @@ spec:
   - image: nginx:1.16
     name: sample-sysctl-initcontainer
 ```
+
+#### 13.5 PodSecurityPolicy
+PodSecurityPolicyはk8sクラスタに対してセキュリティポリシにによる制限を行う
+
+| 設定項目   | 内容       | 
+| ------ | ---------- | 
+|allowPrivilegeEscalation       | allowPrivilegeEscalationを許可するかどうか   |
+|allowedCSIDrivers      |  許可するCSIDriver  |
+|allowedCapabilities    |  許可するCapability  |
+|allowedFlexVolumes     |    |
+|allowedHostPaths       |  hostpathで利用可能なパスのホワイトリスト  |
+|allowedProcMountTypes  |    |
+|allowedUnsafeSysctls   |  利用を許可するunsafeなsysctl  |
+|defaultAddCapabilities |  デフォルトで追加するCapability  |
+|defaultAllowPrivilegeEscalation        |  デフォルトでallowPrivilegeEscalationを許可するかどうか  |
+|forbiddenSysctls       |  利用を拒否するsysctl  |
+|fsGroup        |  fsGroupで利用可能なGIDの範囲  |
+|hostIPC        |  hostIPCの利用を許可するかどうか  |
+|hostNetwork    |  hostNetworkの利用を許可するかどうか  |
+|hostPID        |  hostPIDの利用を許可するかどうか  |
+|hostPorts      |  hostPortの利用を許可するかどうか  |
+|privileged     |  特権コンテナの利用可否  |
+|readOnlyRootFilesystem |  readOnlyRootFilesystemを強制するかどうか  |
+|requiredDropCapabilities       |  Dropする必要のあるCapability  |
+|runAsGroup     |  実行可能なプライマリグループのGID  |
+|runAsUser      |  実行可能なユーザのUID  |
+|runtimeClass   |  利用可能なRuntimeClass  |
+|seLinux        |  設定可能なSELinuxのラベル  |
+|supplementalGroups     |  supplementalGroupsに設定可能なGID  |
+|volumes        |  利用可能なVolumeプラグイン  |
