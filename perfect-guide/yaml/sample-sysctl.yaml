@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-sysctl
+spec:
+  securityContext:
+    sysctls:
+    - name: net.core.somaxconn
+      value: "12345"
+  containers:
+  - image: nginx:1.16
+    name: sample-sysctl

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-sysctl-initcontainer
+spec:
+  initContainers:
+  - name: initialize-sysctl
+    image: busybox:1.27
+    command:
+    - /bin/sh
+    - -c
+    - sysctl -w net.core.somaxconn=12345
+    securityContext:
+      privileged: true
+  containers:
+  - image: nginx:1.16
+    name: sample-sysctl-initcontainer
