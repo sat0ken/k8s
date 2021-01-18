@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: sample-capabilities
+  name: sample-capabilities
+spec:
+  containers:
+  - image: nginx:1.16
+    name: sample-capabilities
+    securityContext:
+      capabilities:
+        add: ["SYS_ADMIN"]
+        drop: ["AUDIT_WRITE"]
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+status: {}

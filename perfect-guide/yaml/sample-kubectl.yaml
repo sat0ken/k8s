@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: sample-kubectl
+  name: sample-kubectl
+spec:
+  serviceAccountName: sample-serviceaccount
+  containers:
+  - command:
+    - sleep
+    - "3600"
+    image: lachlanevenson/k8s-kubectl:v1.20.2
+    name: sample-kubectl
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+status: {}
