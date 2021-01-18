@@ -287,3 +287,87 @@ yes
 $ kubectl -n sample-rbac create deployment nginx --image=nginx:1.16 --as sample-serviceaccount
 error: failed to create deployment: deployments.apps is forbidden: User "sample-serviceaccount" cannot create resource "deployments" in API group "apps" in the namespace "sample-rbac"
 ```
+
+#### 13.3 SecurityContext
+SecurityContextに設定可能な項目
+
+| 設定項目   | 内容       | 
+| ------ | ---------- | 
+| allowPrivilegeEscalation | コンテナ実行時に親プロセス以上の権限を与えるかどうか       | 
+| capabilities |   capabilitiesの追加と削除     | 
+| privileged      | 特権コンテナとして実行 | 
+| procMount   |    | 
+| readOnlyRootFilesystem    | rootファイルシステムをReadOnlyにするかどうか       | 
+| runAsGroup   | 実行するグループ   | 
+| runAsNonRoot  | rootで実行するかどうか   | 
+| runAsUser | 実行するユーザ       | 
+| seLinuxOptions | SELinuxのオプション  | 
+| seccompProfile | seccompのオプション  | 
+
+特権コンテナの作成
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: sample-privilegd
+  name: sample-privilegd
+spec:
+  containers:
+  - image: nginx:1.16
+    name: sample-privilegd
+    securityContext:
+      privileged: true
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+status: {}
+```
+
+Capabilitiesの付与
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: sample-capabilities
+  name: sample-capabilities
+spec:
+  containers:
+  - image: nginx:1.16
+    name: sample-capabilities
+    securityContext:
+      capabilities:
+        add: ["SYS_ADMIN"]
+        drop: ["AUDIT_WRITE"]
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+status: {}
+```
+
+rootファイルシステムのReadOnly化
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: sample-readonly
+  name: sample-readonly
+spec:
+  containers:
+  - image: alpine
+    name: sample-readonly
+    args:
+    - sleep
+    - "3600"
+    securityContext:
+      readOnlyRootFilesystem: true
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+status: {}
+```
