@@ -182,3 +182,108 @@ $ k get clusterrole sample-aggregated-clusterrole -o yaml | yq -y .rules
   verbs:
     - get
 ```
+
+RoleBindingとClusterRoleBinding
+ClusterRoleBindingで作成するとNamespaceをまたいでも同じ権限を付与することができる
+
+RoleBindingの作成
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sample-rolebinding
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sample-role
+subjects:
+- kind: ServiceAccount
+  name: sample-serviceaccount
+  namespace: default
+```
+
+ClusterRoleBindingの作成
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sample-clusterrolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sample-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: sample-serviceaccount
+  namespace: default
+```
+
+RBACのテスト
+検証に利用するPod
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: sample-kubectl
+  name: sample-kubectl
+spec:
+  serviceAccountName: sample-serviceaccount
+  containers:
+  - command:
+    - sleep
+    - "3600"
+    image: lachlanevenson/k8s-kubectl:v1.20.2
+    name: sample-kubectl
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+status: {}
+```
+
+Deploymentの作成→権限付与しているのでOK
+```
+$ k exec sample-kubectl -- kubectl create deployment nginx --image=nginx:1.16
+deployment.apps/nginx created
+```
+
+ReplicaSetのスケーリング→ReplicaSetの権限付与していないので×
+```
+$ k exec sample-kubectl -- kubectl scale replicaset nginx-6d4cf56db6 --replicas 2
+Error from server (Forbidden): replicasets.apps "nginx-6d4cf56db6" is forbidden: User "system:serviceaccount:default:sample-serviceaccount" cannot patch resource "replicasets/scale" in API group "apps" in the namespace "default"
+```
+
+Deploymentのスケーリング→権限付与しているのでOK
+```
+$ k exec sample-kubectl -- kubectl scale deployment nginx --replicas 2
+deployment.apps/nginx scaled
+```
+
+別のNamespaceを作成してClusterRoleBindの動作確認
+ClusterRoleではDeploymentの作成権限を付与していないので×
+```
+$ kubectl create namespace sample-rbac
+namespace/sample-rbac created
+$ k exec sample-kubectl -- kubectl create deployment nginx --image=nginx:1.16 -n sample-rbac
+error: failed to create deployment: deployments.apps is forbidden: User "system:serviceaccount:default:sample-serviceaccount" cannot create resource "deployments" in API group "apps" in the namespace "sample-rbac"
+$ k exec sample-kubectl -- kubectl get deploy -n sample-rbac
+No resources found in sample-rbac namespace.
+```
+
+`kubectl auth can-i` コマンドを利用して確認
+```
+$ k exec sample-kubectl -- kubectl auth can-i create deployment
+yes
+$ k exec sample-kubectl -- kubectl auth can-i create deployment -n sample-rbac
+no
+$ kubectl auth can-i create deployment -n sample-rbac
+yes
+```
+
+`--as` オプションの利用
+```
+$ kubectl -n sample-rbac create deployment nginx --image=nginx:1.16 --as sample-serviceaccount
+error: failed to create deployment: deployments.apps is forbidden: User "sample-serviceaccount" cannot create resource "deployments" in API group "apps" in the namespace "sample-rbac"
+```
