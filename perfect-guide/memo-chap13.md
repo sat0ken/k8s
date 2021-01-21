@@ -554,3 +554,95 @@ PodSecurityPolicyはk8sクラスタに対してセキュリティポリシにに
 |seLinux        |  設定可能なSELinuxのラベル  |
 |supplementalGroups     |  supplementalGroupsに設定可能なGID  |
 |volumes        |  利用可能なVolumeプラグイン  |
+
+PSPの有効化
+api-serverの`--enable-admission-plugins` オプションにセット
+```
+# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep PodSecurity
+    - --enable-admission-plugins=NodeRestriction,PodSecurityPolicy
+```
+
+PodSecurityPoicyによるPod作成の権限の付与
+https://kubernetes.io/docs/concepts/policy/pod-security-policy/
+```
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: sample-podsecuritypolicy
+spec:
+  privileged: false
+  runAsUser:
+    rule: RunAsAny
+  allowPrivilegeEscalation: true
+  allowedCapabilities:
+  - '*'
+  allowedHostPaths:
+  - pathPrefix: "/etc"
+  fsGroup:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  volumes:
+  - '*'
+```
+
+ServiceAccountの作成とPodの作成可能な権限を付与
+```
+$ kubectl create serviceaccount psp-test
+$ kubectl create rolebinding psp-test --clusterrole=edit --serviceaccount=default:psp-test
+```
+
+編集権限が付与されたデフォルトのService Accountを指定してPodを作成すると一致するPodSecurityPolicyが存在しないためPodの作成に失敗する
+```
+$ kubectl --as=system:serviceaccount:default:psp-test create -f- <<EOF
+> apiVersion: v1
+> kind: Pod
+> metadata:
+>   name: pause
+> spec:
+>   containers:
+>     - name: pause
+>       image: k8s.gcr.io/pause
+> EOF
+Error from server (Forbidden): error when creating "STDIN": pods "pause" is forbidden: PodSecurityPolicy: unable to admit pod: []
+```
+
+PSPを作成
+PSPが紐づいたRoleを作成してService Accountと紐づける
+```
+$ kubectl apply -f sample-podsecuritypolicy.yaml
+$ kubectl create role psp-test-role --verb=use --resource=podsecuritypolicy --resource-name=sample-podsecuritypolicy
+$ kubectl create rolebinding psp-test-binding --role=psp-test-role --serviceaccount=default:psp-test
+
+```
+
+Podを作成してみる
+普通のPodは作成できるが特権コンテナはPSPで拒否される
+```
+$ kubectl --as=system:serviceaccount:default:psp-test create -f- <<EOF
+> apiVersion: v1
+> kind: Pod
+> metadata:
+>   name: pause
+> spec:
+>   containers:
+>     - name: pause
+>       image: k8s.gcr.io/pause
+> EOF
+pod/pause created
+$ kubectl --as=system:serviceaccount:default:psp-test create -f- <<EOF
+> apiVersion: v1
+> kind: Pod
+> metadata:
+>   name: privileged
+s> spec:
+>   containers:
+>     - name: pause
+>       image: k8s.gcr.io/pause
+>       securityContext:
+>         privileged: true
+> EOF
+Error from server (Forbidden): error when creating "STDIN": pods "privileged" is forbidden: PodSecurityPolicy: unable to admit pod: [spec.containers[0].securityContext.privileged: Invalid value: true: Privileged containers are not allowed]
+```
