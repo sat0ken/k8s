@@ -108,6 +108,7 @@ TokenコントローラはService Accountが作成されたことを検知する
 
 #### 5.5.2 認可ポリシの定義
 
+認可ポリシとは
 認可ポリシでは何にアクセスの主体が何に対して何の操作を許可するかを定義する<br>
 ・ Subject(誰に)<br>
 　ユーザ、グループ、Service Account<br>
@@ -117,11 +118,35 @@ TokenコントローラはService Accountが作成されたことを検知する
 　Create, Delete, Update, Get, List, Watch<br>
 →許可するか拒否するか
 
+操作対象となるAPI
 Kubernetes APIの分類
 |  種類  |  概要  | 例  |
 | ---- | ---- | ---- |
 |  リソースAPI  |  SecretやPodといったk8sのリソースを操作するAPI |  /api/v1/namespaces/default/pods/alpine<br>/api/v1/nodes/kind-control-plane<br>/api/apps/v1/namespaces/default/deployments |
 |  非リソースAPI  |  メトリクスやログ、Versionなどリソースに紐づかないAPI  |  /version<br>/metrics<br>/openapi/v2  |
 
+制限可能な操作一覧
+| Request verbs | 操作内容 | HTTP verbs | kubectlコマンド               | 
+| ------------- | -------- | ---------- | ----------------------------- | 
+| get           | 取得     | GET/HEAD   | kubectl get <resource> <name> | 
+| list          | 一覧取得 | GET        | kubectl get <resource>        | 
+| watch         | 変更監視 | GET        | kubectl get -w <resource> <name>       | 
+| create         | 作成 | POST        | kubectl create <resource> <name>       | 
+| update         | 更新 | PUT        | kubectl replace -f <manifest>        | 
+| patch         | 一部更新 | PATCH        | kubectl apply -f <manifest>        | 
+| delete         | 削除 | DELETE        | kubectl delete <resource> <name>       | 
+| deletecollection         | 一括削除 | DELETE        | kubectl delete <resource> --all       | 
 
+| Special verbs | 操作内容                                                |
+| ------------- | ------------------------------------------------------- |
+| use           | PodSecurityPolicyの利用                                 |
+| bind          | RoleBindingやClusterRoleBindingによるロールの紐づけ     |
+| escalate      | RoleやClusterRoleの作成と更新による権限昇格             |
+| impersonate   | 実際のアカウントとは別のUserやGroupとしてリクエストする |
+
+#### 5.5.3 RBACによる認可
+
+Roleを定義するリソースはRoleとClusterRoleの２つ
+このリソースにRoleに応じた操作対象のAPIと許可する操作を定義する
+ClusterRoleとRoleの違いはNamespaceに加えて、aggregarionRuleフィールドの有無がある、ラベルによってルールが集約される仕組みとなる
 
