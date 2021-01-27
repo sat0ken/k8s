@@ -146,7 +146,7 @@ Kubernetes APIの分類
 
 #### 5.5.3 RBACによる認可
 
-Roleを定義するリソースはRoleとClusterRoleの２つ
-このリソースにRoleに応じた操作対象のAPIと許可する操作を定義する
-ClusterRoleとRoleの違いはNamespaceに加えて、aggregarionRuleフィールドの有無がある、ラベルによってルールが集約される仕組みとなる
+Roleを定義するリソースはRoleとClusterRoleの２つ<br>
+このリソースにRoleに応じた操作対象のAPIと許可する操作を定義する<br>
+ClusterRoleとRoleの違いはNamespaceに加えて、aggregarionRuleフィールドの有無がある、ラベルによってルールが集約される仕組みとなる<br>
 
